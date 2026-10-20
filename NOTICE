@@ -1,7 +1,6 @@
 Taghvim.dev SDK
-Copyright (c) 2026 Taghvim.dev project contributors and respective rights holders.
+Copyright (c) 2026 Taghvim.dev project authors and contributors.
 
-Original files in this repository are licensed under the Apache License, Version 2.0.
-The Taghvim.dev names, logos and trade marks are not licensed under Apache-2.0.
-This source release is a preview, not a promise of service availability or a
-grant of API credentials. See LICENSE, SECURITY.md and docs/RELEASE-GATES.md.
+Original source, examples and documentation are licensed under the Apache License, Version 2.0.
+Product names, logos and trademarks are not granted under this license.
+Third-party materials, if introduced, retain their own notices and licence obligations.

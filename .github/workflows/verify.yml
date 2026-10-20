@@ -1,4 +1,4 @@
-name: sdk-contract-and-tests
+name: public-sdk-verify
 on:
   push:
     branches: [main]
@@ -10,33 +10,35 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
-  verify:
+  validate:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: '22'
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-      - name: Original Apache-2.0 licensing
+          python-version: '3.11'
+      - name: License and source integrity
         run: |
-          grep -q "Apache License" LICENSE
+          test -f LICENSE && grep -q 'Apache License' LICENSE
           test -f NOTICE
-      - name: Contract and JavaScript client
+          node scripts/check-release.mjs
+      - name: JavaScript SDK tests
         run: |
-          node scripts/check-contract.mjs
           node --check javascript/index.js
           node --test javascript/test/*.test.mjs
-      - name: Python client
+          node --test examples/javascript/client.test.mjs
+          node --check examples/javascript/convert-date.mjs
+      - name: Python SDK tests
         run: |
-          python -m compileall -q python/taghvim_sdk
           PYTHONPATH=python python -m unittest discover -s python/tests -v
-      - name: Cross-repository cookbook contract parity
+          python -m compileall -q examples/python
+      - name: Verify public contract does not drift from organization registry
         run: |
-          curl -fsSL --retry 3 --max-time 20 -o /tmp/cookbook-contract.json https://raw.githubusercontent.com/Taghvim-dev/cookbooks/main/contracts/operation-index.json
-          node --input-type=module -e 'import fs from "node:fs"; import assert from "node:assert/strict"; const a=JSON.parse(fs.readFileSync("contracts/operation-index.json")); const b=JSON.parse(fs.readFileSync("/tmp/cookbook-contract.json")); assert.equal(a.contractVersion,b.contractVersion);assert.equal(a.openApiGitBlobSHA,b.openApiGitBlobSHA);assert.deepEqual(a.operations,b.operations);'
+          curl --fail --silent --show-error --retry 3 --location --max-time 20 https://raw.githubusercontent.com/Taghvim-dev/.github/main/contracts/operation-index.json -o /tmp/taghvim-operation-index.json
+          node --input-type=module -e 'import fs from "node:fs";import assert from "node:assert/strict";assert.deepEqual(JSON.parse(fs.readFileSync("contracts/operation-index.json")),JSON.parse(fs.readFileSync("/tmp/taghvim-operation-index.json")));'
