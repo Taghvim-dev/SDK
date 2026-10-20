@@ -2,7 +2,7 @@ import {readFileSync} from "node:fs";
 import assert from "node:assert/strict";
 const c=JSON.parse(readFileSync(new URL("../contracts/operation-index.json",import.meta.url),"utf8"));
 assert.equal(c.schemaVersion,1);
-assert.match(c.contractVersion,/^\\d+\\.\\d+\\.\\d+$/);
+assert.match(c.contractVersion,/^\d+\.\d+\.\d+$/);
 assert.match(c.openApiGitBlobSHA,/^[a-f0-9]{40}$/);
 assert.ok(c.operations.length>=40);
 const seen=new Set();
