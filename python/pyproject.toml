@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "taghvim-sdk"
-version = "0.1.0.dev0"
+version = "2.1.0"
 description = "Early-access Taghvim.dev Python API client"
 requires-python = ">=3.10"
 license = "Apache-2.0"
