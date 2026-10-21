@@ -1,1 +1,10 @@
-{"name":"taghvim-sdk-monorepo","private":true,"version":"0.1.0-preview.0","type":"module","license":"Apache-2.0","scripts":{"test":"node scripts/check-contract.mjs && node --test javascript/test/*.test.mjs"}}
+{
+  "name": "taghvim-sdk-monorepo",
+  "private": true,
+  "version": "2.1.0",
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "test": "node scripts/check-release.mjs && node scripts/check-contract.mjs && node --test javascript/test/*.test.mjs"
+  }
+}
