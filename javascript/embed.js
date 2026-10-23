@@ -51,17 +51,35 @@ export function registerTaghvimWidgets({registry=globalThis.customElements, HTML
       this.pending=false;
       this.replayKey=null;
       this.lastPayload=null;
+      this.revision=0;
+      this.controller=null;
+      this.formIdentity=null;
+      this.draftValues=null;
+      this.fieldNodes=null;
     }
     connectedCallback(){this.render();}
+    disconnectedCallback(){this.revision++;this.controller?.abort();this.controller=null;this.pending=false;}
     attributeChangedCallback(){if(this.isConnected)this.render();}
     render(){
+      this.revision++;
+      this.controller?.abort();
+      this.controller=null;
+      this.pending=false;
       const kind=this.getAttribute("kind")||"date-picker";
+      const identity=JSON.stringify([kind,this.getAttribute("endpoint")||"/__taghvim/widgets"]);
+      if(identity===this.formIdentity && this.fieldNodes){
+        this.draftValues=Object.fromEntries(Object.entries(this.fieldNodes).map(([name,input])=>[name,input.value]));
+      }else{
+        // A different operation or gateway must never inherit an idempotency key.
+        this.replayKey=null;this.lastPayload=null;this.draftValues=null;
+      }
+      this.formIdentity=identity;
       const descriptor=WIDGET_OPERATIONS[kind];
       const defs=WIDGET_INPUTS[kind];
       const root=this.shadowRoot;
       if(!descriptor || descriptor.unavailable || !defs){
         root.textContent="";
-        const msg=document.createElement("p");
+        const msg=this.ownerDocument.createElement("p");
         msg.setAttribute("role","status");
         msg.textContent="این ویجت هنوز API عملیاتی منتشرشده ندارد؛ پاسخ نمایشی تولید نمی‌شود.";
         root.append(msg);
@@ -69,38 +87,42 @@ export function registerTaghvimWidgets({registry=globalThis.customElements, HTML
         return;
       }
       this.setAttribute("data-api-state","ready");
-      const styles=document.createElement("style");
+      const styles=this.ownerDocument.createElement("style");
       styles.textContent=":host{display:block;font:inherit;color:inherit}form{display:grid;gap:.75rem;border:1px solid #a7a7a7;border-radius:.6rem;padding:1rem}label{display:grid;gap:.25rem}input{font:inherit;padding:.6rem;border:1px solid #999;border-radius:.4rem;max-width:100%;box-sizing:border-box}button{font:inherit;padding:.7rem 1rem;border-radius:.4rem;cursor:pointer}button:disabled{cursor:wait;opacity:.65}pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:20rem;overflow:auto;direction:ltr;text-align:left}output{display:block;min-height:1.5rem}";
-      const form=document.createElement("form");
+      const form=this.ownerDocument.createElement("form");
       form.setAttribute("dir","rtl");
       form.noValidate=true;
       const fields={};
       for(const spec of defs){
-        const label=document.createElement("label");
+        const label=this.ownerDocument.createElement("label");
         label.textContent=spec.label;
-        const input=document.createElement("input");
+        const input=this.ownerDocument.createElement("input");
         input.name=spec.name;
         input.required=true;
-        input.value=spec.value;
+        input.value=this.draftValues?.[spec.name]??spec.value;
         input.type=spec.type==="integer"?"number":"text";
         if(spec.type==="integer")input.step="1";
         input.setAttribute("autocomplete","off");
         input.addEventListener("input",()=>{this.replayKey=null;this.lastPayload=null;});
         label.append(input);form.append(label);fields[spec.name]=input;
       }
-      const action=document.createElement("button");
+      this.fieldNodes=fields;
+      const action=this.ownerDocument.createElement("button");
       action.type="submit";
       action.textContent="فراخوانی API";
-      const status=document.createElement("output");
+      const status=this.ownerDocument.createElement("output");
       status.setAttribute("role","status");
       status.setAttribute("aria-live","polite");
-      const payload=document.createElement("pre");
+      const payload=this.ownerDocument.createElement("pre");
       payload.setAttribute("aria-label","پاسخ واقعی API");
       form.append(action,status,payload);
       form.addEventListener("submit",async e=>{
         e.preventDefault();
         if(this.pending)return;
         this.pending=true;action.disabled=true;
+        const revision=this.revision;
+        const controller=new AbortController();
+        this.controller=controller;
         status.textContent="در حال فراخوانی API...";
         try {
           const input={};
@@ -108,7 +130,7 @@ export function registerTaghvimWidgets({registry=globalThis.customElements, HTML
           const fingerprint=JSON.stringify([kind,input]);
           if(fingerprint!==this.lastPayload){this.replayKey=null;this.lastPayload=fingerprint;}
           const gateway=createClient({endpoint:this.getAttribute("endpoint")||"/__taghvim/widgets"});
-          const options={};
+          const options={signal:controller.signal};
           if(descriptor.sideEffect){
             if(!this.replayKey){
               if(!globalThis.crypto?.randomUUID)throw new Error("مرورگر از شناسهٔ امن برای درخواست پشتیبانی نمی‌کند.");
@@ -117,14 +139,20 @@ export function registerTaghvimWidgets({registry=globalThis.customElements, HTML
             options.idempotencyKey=this.replayKey;
           }
           const result=await gateway.invoke(kind,input,options);
+          if(revision!==this.revision)return;
           payload.textContent=JSON.stringify(result.data,null,2);
           status.textContent="پاسخ API: "+String(result.status)+" · Request ID: "+String(result.requestId||"—");
           this.setAttribute("data-api-state","succeeded");
         }catch(error){
+          if(revision!==this.revision)return;
           payload.textContent="";
           status.textContent="خطای API: "+String(error?.code||error?.message||"network_error");
           this.setAttribute("data-api-state","failed");
-        }finally{action.disabled=false;this.pending=false;}
+        }finally{
+          if(revision===this.revision){
+            action.disabled=false;this.pending=false;this.controller=null;
+          }
+        }
       });
       root.replaceChildren(styles,form);
     }
