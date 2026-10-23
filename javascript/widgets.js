@@ -21,7 +21,7 @@ export class WidgetCapabilityError extends Error {
   constructor(kind,why){super("Widget "+kind+": "+why);this.name="WidgetCapabilityError";this.code="WIDGET_NOT_AVAILABLE";}
 }
 const obj=x=>!!x&&typeof x==="object"&&!Array.isArray(x);
-const idem=x=>typeof x==="string"&&x.length>=8&&x.length<=200&&/^[\x21-\x7e]+$/.test(x);
+const idem=x=>typeof x==="string"&&x.length>=8&&x.length<=128&&/^[\x21-\x7e]+$/.test(x);
 function operation(kind){
   if(!Object.hasOwn(WIDGET_OPERATIONS,kind))throw new WidgetCapabilityError(kind,"not registered");
   const op=WIDGET_OPERATIONS[kind];
