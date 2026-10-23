@@ -1,5 +1,14 @@
 <h1 lang="fa" dir="rtl">SDKهای رسمی متن‌باز تقویم.dev — نسخهٔ آزمایشی</h1>
 
+## 🧪 درخواست API Key و آزمایش رایگان ۳۰روزه | 30-day developer trial
+
+**[ثبت‌نام برای دریافت API Key آزمایشی](https://taghvim.dev/#access)** · **[Request an API test key](https://taghvim.dev/#access)**
+
+با ثبت درخواست دسترسی زودهنگام، ایمیل تأیید دریافت می‌کنید. پس از **۷ روز**، در صورت آماده‌بودن سرویس و برقرار بودن شرایط دسترسی، دعوت‌نامهٔ یک‌بارمصرف به همان ایمیل فرستاده می‌شود. پیوند دعوت تا **۷۲ ساعت** اعتبار دارد. پس از فعال‌سازی دعوت‌نامه، Tenant آزمایشی و کلید `tgv_test_...` صادر می‌شود که **۳۰ روز از زمان فعال‌سازی** معتبر است (نه از زمان ثبت‌نام). کلید فقط یک‌بار در صفحه فعال‌سازی نمایش داده می‌شود؛ هرگز در GitHub، کد کلاینت یا Issue عمومی قرار ندهید. تمدید یا دسترسی Production نیازمند تأیید جداگانه است.
+
+**English:** Register on the official early-access form and receive an acknowledgement email. The seven-day invitation schedule is activated only after the protected Cloudflare release and email-delivery checks. An emailed one-time invitation (72-hour validity) provisions a test tenant and a **30-day test API key starting on activation**. An invitation is not itself an API key. Product-update emails use a separate, optional consent choice. [Privacy](https://taghvim.dev/#privacy) · [Terms](https://taghvim.dev/#terms) · [Contact](https://taghvim.dev/#contact).
+
+
 <p lang="fa" dir="rtl">کلاینت‌های JavaScript/TypeScript و Python برای استفادهٔ برنامه‌نویسی از API تقویم.dev، با قرارداد نسخه‌دار، خطاهای قابل‌ردیابی و نمونه‌های ایمن. این مخزن عمومی و دارای مجوز Apache-2.0 است؛ بااین‌حال، <strong>انتشار عمومی SDK به‌معنای فعال‌بودن ثبت‌نام خودکار یا ارائهٔ کلید آزمایشی به همه نیست</strong>. دسترسی فعلاً با دعوت‌نامه انجام می‌شود.</p>
 
 ## Start here
