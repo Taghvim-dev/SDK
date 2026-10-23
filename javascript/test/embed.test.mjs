@@ -84,3 +84,29 @@ test("stale in-flight API response is ignored after removal from document",async
  assert.ok(!form.children.at(-1).textContent.includes("forbidden"));
  assert.equal(el.pending,false);
 });
+
+
+test("lost side-effect response retains idempotency key and edited fields after remount",async()=>{
+ const keys=[];let calls=0;
+ const Widget=makeWidget({invoke:async(_kind,input,opts)=>{
+   calls++;keys.push(opts.idempotencyKey);
+   assert.equal(input.days,5);
+   if(calls===1)throw Object.assign(Error("network interrupted"),{code:"network_error"});
+   return {data:{id:"deadline_saved"},status:201,requestId:"req_after_retry"};
+ }});
+ const el=new Widget();el.attrs.kind="deadline-create";el.connectedCallback();
+ let form=el.shadowRoot.children[1];
+ const days=form.children[1].children[0];
+ days.value="5";
+ days.handlers.input();
+ await form.handlers.submit({preventDefault(){}});
+ assert.equal(calls,1);assert.ok(keys[0]?.length>=8);
+ el.disconnectedCallback();
+ el.connectedCallback();
+ form=el.shadowRoot.children[1];
+ assert.equal(form.children[1].children[0].value,"5");
+ await form.handlers.submit({preventDefault(){}});
+ assert.equal(calls,2);
+ assert.equal(keys[0],keys[1],"Same payload must use the same retry key");
+ assert.equal(el.attrs["data-api-state"],"succeeded");
+});
