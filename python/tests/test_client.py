@@ -28,6 +28,8 @@ class ClientTests(unittest.TestCase):
         data=sdk.convert_date("1405-07-15")
         self.assertEqual(data["date"]["iso"],"2026-10-07")
         self.assertEqual(sent[0].get_header("Authorization"),"Bearer tgv_test_example")
+        self.assertEqual(sent[0].get_header("User-agent"),"TaghvimSDK-Python/2.1.0")
+        self.assertEqual(sent[0].get_header("Accept"),"application/json")
         self.assertEqual(json.loads(sent[0].data)["date"],"1405-07-15")
     def test_path_guard(self):
         sdk=TaghvimClient(api_key="tgv_test_example")
