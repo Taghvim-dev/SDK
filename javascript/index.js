@@ -21,6 +21,8 @@ function validateKey(key, mode) {
     throw new TypeError("Expected an authorized tgv_test_ or tgv_live_ key");
   if (mode === "test" && !key.startsWith("tgv_test_"))
     throw new TypeError("Test mode requires a tgv_test_ key");
+  if (mode === "live" && !key.startsWith("tgv_live_"))
+    throw new TypeError("Live mode requires a tgv_live_ key");
   return key;
 }
 function encodePart(part) { return encodeURIComponent(String(part)); }
