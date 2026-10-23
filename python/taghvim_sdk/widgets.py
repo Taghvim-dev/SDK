@@ -44,7 +44,7 @@ def invoke_widget(client, widget, input=None, *, idempotency_key=None):
         raise TypeError("A server-side TaghvimClient is required")
     method, path, side_effect = WIDGET_OPERATIONS[widget]
     if side_effect and (not isinstance(idempotency_key, str)
-                        or not 8 <= len(idempotency_key) <= 200
+                        or not 8 <= len(idempotency_key) <= 128
                         or not idempotency_key.isascii()):
         raise ValueError("Side-effecting widgets require an idempotency key")
     payload = input.copy()
