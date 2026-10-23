@@ -48,3 +48,19 @@ This is **preview source**: no published npm/PyPI package or generally available
 The **canonical API contract** is owned and versioned by Taghvim.dev Engine. Every approved change must reconcile contract → SDK → examples → cookbooks → release evidence before publication. The immutable source contract Git blob SHA is recorded in [the operation index](contracts/operation-index.json).
 
 **License:** [Apache-2.0](LICENSE). [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Notice](NOTICE). Product names and marks are not licensed by the source-code license.
+
+## Calendar & Date Reconciliation (API-backed early-access)
+
+Date reconciliation compares explicit **calendar days** across Jalali, Gregorian and Umm al-Qura Hijri using **two authenticated `POST /v1/dates/convert` calls** against the same tenant API. It is not yet a standalone `/v1/temporal/reconcile` API endpoint and does not reconcile timestamp instants, arbitrary holiday policies, or cross-country business calendars. `policy_conflict` is returned if the calendar data version or same-day weekday/holiday facts differ between calls; there is no silent correction. The API meters both conversions independently.
+
+```js
+import {createTestClient} from '@taghvim/sdk';
+const api = createTestClient({apiKey:process.env.TAGHVIM_TEST_API_KEY});
+const result = await api.reconcileDates({
+  left:{date:'1405-07-15',calendar_system:'jalali'},
+  right:{date:'2026-10-07',calendar_system:'gregorian'}
+});
+console.log(result.data.status, result.data.evidence.request_ids);
+```
+
+For server-rendered widgets, call `invokeWidget(client, 'date-reconciliation', {left,right})` from `@taghvim/sdk/widgets` with a tenant-scoped key. Never expose API credentials in a public browser. A public embed requires `createWidgetGateway` with independent authentication, tenant resolution, origin allowlisting and quota admission.

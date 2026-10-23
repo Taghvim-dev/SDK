@@ -10,6 +10,7 @@ export class TaghvimClient {
  versions(options?:RequestOptions):Promise<ApiResponse>;
  me(options?:RequestOptions):Promise<ApiResponse>;
  convertDate(body:{date:string},options?:RequestOptions):Promise<ApiResponse>;
+ reconcileDates(body:{left:{date:string;calendar_system:"jalali"|"gregorian"|"hijri"};right:{date:string;calendar_system:"jalali"|"gregorian"|"hijri"}},options?:RequestOptions):Promise<ApiResponse>;
  resolveDate(body:unknown,options?:RequestOptions):Promise<ApiResponse>;
  addBusinessDays(body:unknown,options?:RequestOptions):Promise<ApiResponse>;
  diffBusinessDays(body:unknown,options?:RequestOptions):Promise<ApiResponse>;

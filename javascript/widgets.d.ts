@@ -1,12 +1,12 @@
 /** Preview: canonical Engine 2.1.0 widget operation bindings; unsupported widgets fail closed. */
 export type WidgetKind =
- "date-picker" | "dual-calendar-badge" | "holiday-month" | "holiday-badge" |
+ "date-picker" | "dual-calendar-badge" | "date-reconciliation" | "holiday-month" | "holiday-badge" |
  "business-day-badge" | "deadline-calculator" | "deadline-create" |
  "sla-calculator" | "reminder-preview" | "recurrence-builder" |
  "agent-schedule-preview" | "webhook-test" | "booking" | "availability" |
  "workflow-run" | "agent-execution";
 export declare const WIDGET_OPERATIONS: Readonly<Record<WidgetKind,
- Readonly<{method:"GET"|"POST";path:string;sideEffect?:boolean}> | Readonly<{unavailable:string}>>>;
+ Readonly<{method:"GET"|"POST";path:string;sideEffect?:boolean;composite?:boolean}> | Readonly<{unavailable:string}>>>;
 export declare class WidgetCapabilityError extends Error {code:"WIDGET_NOT_AVAILABLE";}
 export interface WidgetResponse<T=unknown> {data:T;status:number;requestId:string|null;rateLimit:string|null;}
 export interface WidgetTransport {request(method:"GET"|"POST",path:string,options?:{body?:unknown;query?:Record<string,unknown>;idempotencyKey?:string;signal?:AbortSignal}):Promise<WidgetResponse>;}
