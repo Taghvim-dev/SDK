@@ -29,7 +29,8 @@ class TaghvimClient:
     def call(self, method, path, body=None, idempotency_key=None):
         if method not in ("GET", "POST", "DELETE") or not path.startswith("/v1/") or "?" in path or "#" in path or ".." in path or "//" in path:
             raise ValueError("Invalid API route")
-        headers = {"Authorization": f"Bearer {self.api_key}", "Accept": "application/json"}
+        headers = {"Authorization": f"Bearer {self.api_key}", "Accept": "application/json",
+                   "User-Agent": "TaghvimSDK-Python/2.1.0"}
         if body is not None:
             headers["Content-Type"] = "application/json"
         if idempotency_key is not None:
