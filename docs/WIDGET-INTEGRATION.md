@@ -61,3 +61,37 @@ registerTaghvimWidgets();
 ```
 
 Each form submits through `createBrowserWidgetClient` to the same-origin secure gateway and shows the **actual HTTP response and request ID**, without browser-side fake receipts. Available kinds are enumerated in the exported immutable `WIDGET_OPERATIONS` registry. Unsupported kinds render a fail-closed availability warning instead of an imitation response. The component is a preview widget implementation; publication, accessibility sign-off and real tenant/request evidence remain production release gates.
+
+
+## Real API-powered Web Component (developer preview)
+
+Import the widget SDK browser module in your application, *after* configuring
+the server-side \`createWidgetGateway\` documented above.
+
+\`\`\`javascript
+import {registerTaghvimWidgets} from "@taghvim/sdk/elements";
+registerTaghvimWidgets();
+\`\`\`
+
+\`\`\`html
+<taghvim-api-widget kind="date-picker" input='{"date":"1405-07-15"}'></taghvim-api-widget>
+<taghvim-api-widget kind="holiday-month" input='{"year":1405,"month":7}'></taghvim-api-widget>
+<taghvim-api-widget kind="deadline-calculator" input='{"date":"1405-07-15","days":3}'></taghvim-api-widget>
+\`\`\`
+
+All twelve declared supported kinds submit through the same-origin
+\`/__taghvim/widgets\` route to a real tenant-bound SDK API request, returning
+the API payload and request ID. Nothing is computed or faked by the element.
+Changing the \`endpoint\` attribute is allowed only for safe same-origin routes.
+A webhook test requires the authenticated tenant's own webhook \`id\`.
+Persistent deadline creation and webhook tests require a direct button click
+and retry-stable idempotency key. API failures visibly fail closed.
+
+The four unavailable kinds (\`booking\`, \`availability\`, \`workflow-run\`,
+\`agent-execution\`) render **disabled**, with a clear unavailable reason;
+they are *not* production APIs. The engine must add and independently verify
+governed endpoints before these may be enabled.
+
+The Web Component is a functional developer-facing API integration,
+**not** a polished production booking/calendar UX, nor proof that a customer's
+API key has been issued and exercised on Cloudflare.
