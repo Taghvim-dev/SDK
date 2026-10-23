@@ -21,6 +21,7 @@ test("test client sends an authenticated request and preserves trace metadata",a
 });
 test("enforces opt-in to live keys, rejects HTTP remote hosts and never leaks keys", async()=>{
  assert.throws(()=>createTestClient({apiKey:"tgv_live_TestOnly"}),/Test mode requires/);
+ assert.throws(()=>new TaghvimClient({apiKey:key,mode:"live"}),/Live mode requires/);
  assert.throws(()=>createTestClient({apiKey:key,baseUrl:"http://example.com"}),/Insecure/);
  const client=new TaghvimClient({apiKey:key,fetch:async()=>new Response(JSON.stringify({code:"quota_exceeded",title:"Quota exceeded"}),{status:429,headers:{"content-type":"application/json","Taghvim-Request-Id":"req_limit","Retry-After":"30"}})});
  await assert.rejects(client.usage(),e=>e instanceof TaghvimApiError && e.code==="quota_exceeded"&&e.status===429&&e.requestId==="req_limit"&&e.retryAfter==="30"&&!String(e).includes(key));

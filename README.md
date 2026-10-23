@@ -29,6 +29,7 @@
 - [Python SDK](python/README.md)
 - [Working examples](examples/README.md)
 - [Pinned operation index](contracts/operation-index.json)
+- [API-backed widget adapters for JS and Python](docs/WIDGET-INTEGRATION.md) — preview; unsupported capabilities fail closed
 - [SDK release and compatibility policy](docs/RELEASE-POLICY.md)
 - [Developer cookbooks](https://github.com/Taghvim-dev/cookbooks)
 - [Product and early-access request](https://taghvim.dev/)

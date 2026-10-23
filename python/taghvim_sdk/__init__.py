@@ -3,7 +3,7 @@
 import json
 import urllib.error
 import urllib.request
-from urllib.parse import quote, urlsplit
+from urllib.parse import quote, urlsplit, urlencode
 from urllib.parse import urlparse
 
 
@@ -26,7 +26,7 @@ class TaghvimClient:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
-    def call(self, method, path, body=None, idempotency_key=None):
+    def call(self, method, path, body=None, idempotency_key=None, query=None):
         if method not in ("GET", "POST", "DELETE") or not path.startswith("/v1/") or "?" in path or "#" in path or ".." in path or "//" in path:
             raise ValueError("Invalid API route")
         # Explicit SDK identity: default Python-urllib User-Agent can be classified
@@ -41,6 +41,12 @@ class TaghvimClient:
             headers["Content-Type"] = "application/json"
         if idempotency_key is not None:
             headers["Idempotency-Key"] = idempotency_key
+        if query is not None and not isinstance(query, dict):
+            raise ValueError("API query must be a dictionary")
+        if query:
+            if any(not isinstance(k, str) or not k for k in query):
+                raise ValueError("Invalid query parameter name")
+            path += "?" + urlencode({k: v for k, v in query.items() if v is not None})
         req = urllib.request.Request(self.base_url + path,
             data=None if body is None else json.dumps(body).encode("utf-8"),
             headers=headers, method=method)
