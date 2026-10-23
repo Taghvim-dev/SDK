@@ -40,12 +40,14 @@ export function registerTaghvimWidgets({
      this._inFlight=false;
      this._revision=0;
      this._controller=null;
+     this._pendingIdempotencyKey=null;
      this.attachShadow({mode:"open"});
    }
    connectedCallback(){this.render();}
    disconnectedCallback(){
      this._revision++;
      this._controller?.abort();
+     this._inFlight=false;
    }
    attributeChangedCallback(){
      if(this.isConnected)this.render();
@@ -53,6 +55,8 @@ export function registerTaghvimWidgets({
    render(){
      this._revision++;
      this._controller?.abort();
+     this._inFlight=false;
+     this._pendingIdempotencyKey=null;
      const root=this.shadowRoot;
      root.replaceChildren();
      const doc=this.ownerDocument;
@@ -98,7 +102,8 @@ export function registerTaghvimWidgets({
          status.textContent="Invalid same-origin gateway route";return;
        }
        const key=op.sideEffect?
-         ((globalThis.crypto?.randomUUID?.()||"")||null):undefined;
+         (this._pendingIdempotencyKey||globalThis.crypto?.randomUUID?.()||null):undefined;
+       if(key)this._pendingIdempotencyKey=key;
        if(op.sideEffect&&!key){
          status.textContent="Secure idempotency key generator unavailable";return;
        }
@@ -116,6 +121,7 @@ export function registerTaghvimWidgets({
          const req=response.requestId||"no request ID";
          result.textContent=JSON.stringify(response.data,null,2);
          status.textContent="Live API response · "+req;
+         this._pendingIdempotencyKey=null;
          this.dispatchEvent(new CustomEvent("taghvim:result",{
            detail:{kind,data:response.data,requestId:response.requestId},
            bubbles:true,composed:true
