@@ -44,3 +44,20 @@ Calendar picker and dual calendar badge: POST /v1/dates/convert. Holiday month: 
 ## Must pass before Production
 
 Add missing Engine endpoints through the canonical OpenAPI and SDK registry; implement host gateway and real embed packages; verify an issued test API key and tenant isolation; migrate and reconcile Cloudflare D1 Sandbox→Production via protected promotion; run negative authorization, quotas, idempotency, receipt, retry and metering tests; verify externally and register evidence, exact commits and deployment SHAs. A green source-level test is not a production certification.
+
+## RTL Web Component (source preview)
+
+Place the browser SDK sources in your application bundle; **do not pass an API key to the browser**. Install the gateway on your application's own origin and ensure its authorize/admit hooks validate real sessions, CSRF and tenant quotas.
+
+```js
+import {registerTaghvimWidgets} from "@taghvim/sdk/embed";
+registerTaghvimWidgets();
+```
+
+```html
+<taghvim-api-widget kind="date-picker"></taghvim-api-widget>
+<taghvim-api-widget kind="deadline-calculator"></taghvim-api-widget>
+<taghvim-api-widget kind="recurrence-builder"></taghvim-api-widget>
+```
+
+Each form submits through `createBrowserWidgetClient` to the same-origin secure gateway and shows the **actual HTTP response and request ID**, without browser-side fake receipts. Available kinds are enumerated in the exported immutable `WIDGET_OPERATIONS` registry. Unsupported kinds render a fail-closed availability warning instead of an imitation response. The component is a preview widget implementation; publication, accessibility sign-off and real tenant/request evidence remain production release gates.
