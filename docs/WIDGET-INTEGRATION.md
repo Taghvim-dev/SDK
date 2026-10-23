@@ -11,11 +11,15 @@ import {createTestClient} from "@taghvim/sdk";
 import {createWidgetGateway} from "@taghvim/sdk/widgets";
 
 // Server only. Read secret from your host's secure secret store.
-const api = createTestClient({apiKey: env.TAGHVIM_TEST_API_KEY});
 const gateway = createWidgetGateway({
-  client: api,
+  // Each verified session owns one tenant. Never share keys across tenants.
+  clientForTenant: async tenantId => {
+    const secret = await secureTenantKeyStore.get(tenantId);
+    if (!secret) return null;
+    return createTestClient({apiKey: secret});
+  },
   allowedOrigins: ["https://your-app.example"],
-  authorize: request => validateYourApplicationSession(request),
+  authorize: request => verifySessionAndTenantId(request),
   admit: ({actor, widget}) => enforceYourTenantQuota(actor, widget)
 });
 // Route /__taghvim/widgets to gateway(request) in your application.
@@ -29,7 +33,7 @@ const result=await widgets.invoke("deadline-calculator",
 console.log(result.data,result.requestId);
 ~~~
 
-Keep keys out of HTML, browser bundles, URLs, GitHub, logs and public examples. The application must implement actual session validation, anti-CSRF handling, tenant ownership, secret management, and quota storage. The SDK's gateway rejects missing security hooks; this is **not** a turnkey identity provider.
+Keep keys out of HTML, browser bundles, URLs, GitHub, logs and public examples. The application must implement actual session validation, anti-CSRF handling, tenant ownership, secret management, and quota storage. A valid `authorize` callback returns `{tenantId}` from its verified session. `clientForTenant` then fetches *only that tenant's* credential. A static `client` is disallowed unless `singleTenant:true` is explicitly configured, and must never be used in multi-tenant deployments. The SDK's gateway rejects missing security hooks; this is **not** a turnkey identity provider.
 
 ## Contract-backed widget operations
 
