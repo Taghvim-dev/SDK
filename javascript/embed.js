@@ -8,6 +8,8 @@ import {WIDGET_OPERATIONS, createBrowserWidgetClient} from "./widgets.js";
 export const WIDGET_INPUTS = Object.freeze({
   "date-picker": [{name:"date",label:"تاریخ شمسی یا میلادی",value:"1405-07-15"}],
   "dual-calendar-badge": [{name:"date",label:"تاریخ",value:"1405-07-15"}],
+  "date-reconciliation": [{name:"left",label:"تاریخ اول (JSON)",value:'{"date":"1405-07-15","calendar_system":"jalali"}',type:"json"},
+    {name:"right",label:"تاریخ دوم (JSON)",value:'{"date":"2026-10-07","calendar_system":"gregorian"}',type:"json"}],
   "holiday-month": [{name:"year",label:"سال شمسی",value:"1405",type:"integer"},{name:"month",label:"ماه",value:"7",type:"integer"}],
   "holiday-badge": [{name:"date",label:"تاریخ",value:"1405-07-15"}],
   "business-day-badge": [{name:"date",label:"تاریخ",value:"1405-07-15"}],
