@@ -20,10 +20,6 @@
     "./embed": {
       "types": "./embed.d.ts",
       "default": "./embed.js"
-    },
-    "./elements": {
-      "types": "./elements.d.ts",
-      "default": "./elements.js"
     }
   },
   "scripts": {
