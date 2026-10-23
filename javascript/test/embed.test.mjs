@@ -29,3 +29,58 @@ test("no widget component may import a raw-key TaghvimClient",async()=>{
  assert.match(s,/createBrowserWidgetClient|createClient/);
  assert.doesNotMatch(s,/tgv_(test|live)_|new TaghvimClient|Authorization\s*:/);
 });
+
+
+class FakeNode {
+ constructor(type="container"){this.localName=type;this.children=[];this.handlers={};this.textContent="";this.disabled=false;this.attrs={};this.value="";}
+ setAttribute(name,value){this.attrs[name]=value;}
+ addEventListener(type,handler){this.handlers[type]=handler;}
+ append(...children){this.children.push(...children);}
+ replaceChildren(...children){this.children=children;}
+}
+class FakeElement {
+ constructor(){this.attrs={kind:"date-picker"};this.isConnected=true;this.ownerDocument={createElement:(type)=>new FakeNode(type)};this.shadowRoot=new FakeNode();}
+ getAttribute(name){return this.attrs[name]||null;}
+ setAttribute(name,value){this.attrs[name]=value;}
+ attachShadow(){return this.shadowRoot;}
+}
+function makeWidget(client){
+ const reg=new Map(),registry={get:n=>reg.get(n),define:(n,v)=>reg.set(n,v)};
+ return registerTaghvimWidgets({registry,HTMLElementType:FakeElement,createClient:()=>client});
+}
+test("embedded form submits authenticated gateway request, displays actual API data and request ID",async()=>{
+ const calls=[];
+ const Widget=makeWidget({invoke:async(...args)=>{calls.push(args);return {data:{date:{jalali:"1405-07-15"}},status:200,requestId:"req_real_001"};}});
+ const el=new Widget();el.connectedCallback();
+ const form=el.shadowRoot.children[1];
+ await form.handlers.submit({preventDefault(){}});
+ assert.equal(calls.length,1);
+ assert.equal(calls[0][0],"date-picker");
+ assert.deepEqual(calls[0][1],{date:"1405-07-15"});
+ assert.ok(calls[0][2].signal instanceof AbortSignal);
+ assert.match(form.children.at(-2).textContent,/req_real_001/);
+ assert.match(form.children.at(-1).textContent,/1405-07-15/);
+ assert.equal(el.attrs["data-api-state"],"succeeded");
+});
+test("API errors cannot be substituted with fake successful widget results",async()=>{
+ const Widget=makeWidget({invoke:async()=>{throw Object.assign(Error("forbidden"),{code:"unauthorized"});}});
+ const el=new Widget();el.connectedCallback();const form=el.shadowRoot.children[1];
+ await form.handlers.submit({preventDefault(){}});
+ assert.equal(el.attrs["data-api-state"],"failed");
+ assert.match(form.children.at(-2).textContent,/unauthorized/);
+ assert.equal(form.children.at(-1).textContent,"");
+});
+test("stale in-flight API response is ignored after removal from document",async()=>{
+ let resolve,seenSignal;
+ const wait=new Promise(done=>resolve=done);
+ const Widget=makeWidget({invoke:async(_kind,_input,opts)=>{seenSignal=opts.signal;return wait;}});
+ const el=new Widget();el.connectedCallback();const form=el.shadowRoot.children[1];
+ const pending=form.handlers.submit({preventDefault(){}});
+ await Promise.resolve();await Promise.resolve();
+ el.disconnectedCallback();
+ assert.equal(seenSignal.aborted,true);
+ resolve({data:{forbidden:true},status:200,requestId:"req_stale"});
+ await pending;
+ assert.ok(!form.children.at(-1).textContent.includes("forbidden"));
+ assert.equal(el.pending,false);
+});
