@@ -53,6 +53,9 @@ export function registerTaghvimWidgets({registry=globalThis.customElements, HTML
       this.lastPayload=null;
       this.revision=0;
       this.controller=null;
+      this.formIdentity=null;
+      this.draftValues=null;
+      this.fieldNodes=null;
     }
     connectedCallback(){this.render();}
     disconnectedCallback(){this.revision++;this.controller?.abort();this.controller=null;this.pending=false;}
@@ -62,9 +65,15 @@ export function registerTaghvimWidgets({registry=globalThis.customElements, HTML
       this.controller?.abort();
       this.controller=null;
       this.pending=false;
-      this.replayKey=null;
-      this.lastPayload=null;
       const kind=this.getAttribute("kind")||"date-picker";
+      const identity=JSON.stringify([kind,this.getAttribute("endpoint")||"/__taghvim/widgets"]);
+      if(identity===this.formIdentity && this.fieldNodes){
+        this.draftValues=Object.fromEntries(Object.entries(this.fieldNodes).map(([name,input])=>[name,input.value]));
+      }else{
+        // A different operation or gateway must never inherit an idempotency key.
+        this.replayKey=null;this.lastPayload=null;this.draftValues=null;
+      }
+      this.formIdentity=identity;
       const descriptor=WIDGET_OPERATIONS[kind];
       const defs=WIDGET_INPUTS[kind];
       const root=this.shadowRoot;
@@ -90,13 +99,14 @@ export function registerTaghvimWidgets({registry=globalThis.customElements, HTML
         const input=this.ownerDocument.createElement("input");
         input.name=spec.name;
         input.required=true;
-        input.value=spec.value;
+        input.value=this.draftValues?.[spec.name]??spec.value;
         input.type=spec.type==="integer"?"number":"text";
         if(spec.type==="integer")input.step="1";
         input.setAttribute("autocomplete","off");
         input.addEventListener("input",()=>{this.replayKey=null;this.lastPayload=null;});
         label.append(input);form.append(label);fields[spec.name]=input;
       }
+      this.fieldNodes=fields;
       const action=this.ownerDocument.createElement("button");
       action.type="submit";
       action.textContent="فراخوانی API";
