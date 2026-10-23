@@ -3,5 +3,5 @@ export declare const WIDGET_INPUTS:Readonly<Partial<Record<WidgetKind,ReadonlyAr
 export declare function registerTaghvimWidgets(options?:{
  registry?:CustomElementRegistry;
  HTMLElementType?:typeof HTMLElement;
- createClient?:(options:{endpoint?:string})=>{invoke:(widget:WidgetKind,input?:Record<string,unknown>,options?:{idempotencyKey?:string})=>Promise<WidgetResponse>};
+ createClient?:(options:{endpoint?:string})=>{invoke:(widget:WidgetKind,input?:Record<string,unknown>,options?:{idempotencyKey?:string;signal?:AbortSignal})=>Promise<WidgetResponse>};
 }):typeof HTMLElement;
