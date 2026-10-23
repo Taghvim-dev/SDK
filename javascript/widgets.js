@@ -51,8 +51,12 @@ function json(status,payload){
   return new Response(JSON.stringify(payload),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
 }
 /** Default-deny gateway; host must implement verified session and quota admission. */
-export function createWidgetGateway({client,authorize,admit,allowedOrigins}={}){
-  if(!client||typeof client.request!=="function"||typeof authorize!=="function"||typeof admit!=="function"||
+export function createWidgetGateway({clientForTenant,client,singleTenant=false,authorize,admit,allowedOrigins}={}){
+  // Multi-tenant applications MUST resolve a tenant-bound secret per authenticated actor.
+  // The static client is restricted to applications explicitly declaring one tenant.
+  if((typeof clientForTenant!=="function" && (!singleTenant || !client || typeof client.request!=="function")) ||
+    (typeof clientForTenant==="function" && (client || singleTenant)) ||
+    typeof authorize!=="function"||typeof admit!=="function"||
     !Array.isArray(allowedOrigins)||!allowedOrigins.length||!allowedOrigins.every(s=>{try{const u=new URL(s);return u.origin===s&&u.protocol==="https:";}catch{return false;}}))
     throw new TypeError("Gateway requires client, authorize, admit, and HTTPS allowedOrigins");
   const origins=new Set(allowedOrigins);
@@ -63,7 +67,7 @@ export function createWidgetGateway({client,authorize,admit,allowedOrigins}={}){
     if(Number(request.headers.get("content-length")||0)>16384)return json(413,{code:"payload_too_large"});
     let actor;
     try{actor=await authorize(request);}catch{return json(403,{code:"unauthorized"});}
-    if(!actor)return json(403,{code:"unauthorized"});
+    if(!actor || typeof actor!=="object" || typeof actor.tenantId!=="string" || !/^[A-Za-z0-9_-]{1,128}$/.test(actor.tenantId))return json(403,{code:"unauthorized_tenant"});
     let value;
     try{const body=await request.text();if(body.length>16384)return json(413,{code:"payload_too_large"});value=JSON.parse(body);}catch{return json(400,{code:"invalid_json"});}
     if(!obj(value)||typeof value.widget!=="string"||!obj(value.input))return json(400,{code:"invalid_widget_input"});
@@ -75,7 +79,9 @@ export function createWidgetGateway({client,authorize,admit,allowedOrigins}={}){
     const key=request.headers.get("idempotency-key")||undefined;
     if(op.sideEffect&&!idem(key))return json(400,{code:"idempotency_required"});
     try{
-      const r=await invokeWidget(client,value.widget,value.input,{idempotencyKey:key});
+      const scopedClient=typeof clientForTenant==="function"?await clientForTenant(actor.tenantId,actor):client;
+      if(!scopedClient||typeof scopedClient.request!=="function")return json(403,{code:"tenant_not_provisioned"});
+      const r=await invokeWidget(scopedClient,value.widget,value.input,{idempotencyKey:key});
       return json(200,{data:r.data,status:r.status,requestId:r.requestId,rateLimit:r.rateLimit});
     }catch(e){
       const status=Number.isInteger(e.status)&&e.status>=400&&e.status<=599?e.status:502;
