@@ -16,6 +16,10 @@
     "./widgets": {
       "types": "./widgets.d.ts",
       "default": "./widgets.js"
+    },
+    "./embed": {
+      "types": "./embed.d.ts",
+      "default": "./embed.js"
     }
   },
   "scripts": {
