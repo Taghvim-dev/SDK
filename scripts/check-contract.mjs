@@ -4,7 +4,8 @@ const index=JSON.parse(readFileSync(new URL("../contracts/operation-index.json",
 assert.equal(index.schemaVersion,1);
 assert.equal(index.contractVersion,"2.1.0");
 assert.match(index.openApiGitBlobSHA,/^[0-9a-f]{40}$/);
-assert.equal(index.operations.length,46);
+assert.equal(index.operations.length,47);
+assert.ok(index.operations.some(x=>x.method==="POST"&&x.path==="/v1/dates/reconcile"&&x.operationId==="reconcileDates"&&x.auth.includes("ApiKey")));
 const seen=new Set();
 for(const o of index.operations){
  assert.ok(o.operationId&&o.method&&o.path);
