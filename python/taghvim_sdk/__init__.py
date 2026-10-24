@@ -77,6 +77,6 @@ class TaghvimClient:
         return self.call("GET", "/v1/usage")
 
     def reconcile_dates(self, dates):
-        """Two separate canonical/metered date-conversion calls; day-only, not instants."""
+        """One native authenticated/metered reconciliation call; day-only, not instants."""
         from .reconciliation import reconcile_calendar_dates
         return reconcile_calendar_dates(self, dates)
