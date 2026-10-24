@@ -27,6 +27,11 @@ class TaghvimClient:
         self.timeout = timeout
 
     def call(self, method, path, body=None, idempotency_key=None, query=None):
+        """Backwards-compatible API response payload (not a synthetic SDK result)."""
+        return self.call_with_meta(method, path, body, idempotency_key, query)["data"]
+
+    def call_with_meta(self, method, path, body=None, idempotency_key=None, query=None):
+        """Canonical payload and HTTP evidence; never put the API key into a response."""
         if method not in ("GET", "POST", "DELETE") or not path.startswith("/v1/") or "?" in path or "#" in path or ".." in path or "//" in path:
             raise ValueError("Invalid API route")
         # Explicit SDK identity: default Python-urllib User-Agent can be classified
@@ -52,7 +57,12 @@ class TaghvimClient:
             headers=headers, method=method)
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as res:
-                return json.load(res)
+                return {
+                    "data": json.load(res),
+                    "status": getattr(res, "status", 200),
+                    "requestId": res.headers.get("Taghvim-Request-Id"),
+                    "rateLimit": res.headers.get("RateLimit"),
+                }
         except urllib.error.HTTPError as err:
             try:
                 data = json.load(err)
@@ -65,3 +75,8 @@ class TaghvimClient:
 
     def usage(self):
         return self.call("GET", "/v1/usage")
+
+    def reconcile_dates(self, dates):
+        """Two separate canonical/metered date-conversion calls; day-only, not instants."""
+        from .reconciliation import reconcile_calendar_dates
+        return reconcile_calendar_dates(self, dates)
