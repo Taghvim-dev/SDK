@@ -10,7 +10,7 @@ from urllib.parse import quote
 WIDGET_OPERATIONS = {
     "date-picker": ("POST", "/v1/dates/convert", False),
     "dual-calendar-badge": ("POST", "/v1/dates/convert", False),
-    "date-reconciliation": ("POST", "/v1/dates/convert", False),
+    "date-reconciliation": ("POST", "/v1/dates/reconcile", False),
     "holiday-month": ("GET", "/v1/holidays", False),
     "holiday-badge": ("GET", "/v1/holidays/{date}", False),
     "business-day-badge": ("GET", "/v1/business-days/check", False),
