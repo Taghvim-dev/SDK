@@ -77,6 +77,10 @@ class TaghvimClient:
         return self.call("GET", "/v1/usage")
 
     def reconcile_dates(self, dates):
-        """Two separate canonical/metered date-conversion calls; day-only, not instants."""
-        from .reconciliation import reconcile_calendar_dates
-        return reconcile_calendar_dates(self, dates)
+        """One native authenticated and metered Engine request; no implicit composite fallback."""
+        from .reconciliation import _input_date
+        if not isinstance(dates, dict):
+            raise TypeError("Expected left/right date inputs")
+        _input_date(dates.get("left"), "left")
+        _input_date(dates.get("right"), "right")
+        return self.call_with_meta("POST", "/v1/dates/reconcile", dates)
