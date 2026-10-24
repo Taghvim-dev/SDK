@@ -32,4 +32,4 @@ widget = invoke_widget(client, "date-reconciliation", {
 })
 ```
 
-Two authenticated POST /v1/dates/convert operations are used, and metered independently. Date equality is **calendar-day only**, not timezone-bound instant reconciliation. Invalid inputs fail before API calls; calendar pack conflicts are explicitly reported. Do not place the API key in the browser or claim a native /v1/temporal/reconcile endpoint.
+The primary SDK now uses **one authenticated and metered POST /v1/dates/reconcile** operation. A 404 cannot trigger an implicit downgrade. The explicitly named legacy helper `reconcile_calendar_dates(client, pair)` still performs two separately metered POST /v1/dates/convert requests, if an application deliberately opts into the older composite behavior. Reconciliation covers **calendar-day identity**, not timezone-bound instants. Both browser and server must protect API keys, and calendar/policy discrepancies must remain explicit.
