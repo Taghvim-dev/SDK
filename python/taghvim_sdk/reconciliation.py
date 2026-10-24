@@ -1,89 +1,47 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Fail-closed Taghvim calendar-day reconciliation via authenticated Engine API."""
+"""Native governed calendar-day reconciliation; one authenticated, metered API request."""
 import re
-from datetime import date
+_SYSTEMS=frozenset(("jalali","gregorian","hijri"))
+_FIELDS=frozenset(("iso","weekday","business_day","calendar_data_version"))
 
-_SYSTEMS = frozenset(("jalali", "gregorian", "hijri"))
+def _assertion(value,side):
+    if not isinstance(value,dict) or value.get("calendar_system") not in _SYSTEMS:
+        raise ValueError(f"{side}: explicit calendar_system required")
+    date=value.get("date")
+    if not isinstance(date,str) or not 6<=len(date.strip())<=48:
+        raise ValueError(f"{side}: explicit date required")
+    if set(value)-{"date","calendar_system","expected"}:
+        raise ValueError(f"{side}: unknown assertion property")
+    out={"date":date.strip(),"calendar_system":value["calendar_system"]}
+    if "expected" in value:
+        expected=value["expected"]
+        if not isinstance(expected,dict) or set(expected)-_FIELDS:
+            raise ValueError(f"{side}: invalid expected policy fields")
+        out["expected"]=expected.copy()
+    return out
 
-
-def _input_date(value, label):
-    if not isinstance(value, dict) or value.get("calendar_system") not in _SYSTEMS:
-        raise ValueError(f"{label}: explicit calendar_system required")
-    text = value.get("date")
-    if not isinstance(text, str) or not 6 <= len(text) <= 48 or not text.strip():
-        raise ValueError(f"{label}: an explicit date is required")
-    return {"date": text.strip(), "calendar_system": value["calendar_system"]}
-
-
-def _canonical(envelope, label):
-    if not isinstance(envelope, dict) or envelope.get("status") != 200:
-        raise ValueError(f"Invalid canonical API response for {label}")
-    data = envelope.get("data")
-    d = data.get("date") if isinstance(data, dict) else None
-    if (not isinstance(d, dict)
-            or not isinstance(d.get("iso"), str)
-            or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", d["iso"])
-            or type(d.get("weekday")) is not int
-            or type(d.get("business_day")) is not bool
-            or not isinstance(d.get("holidays"), list)
-            or not isinstance(data.get("calendar_data_version"), str)):
-        raise ValueError(f"Invalid canonical API response for {label}")
-    try:
-        parsed = date.fromisoformat(d["iso"])
-    except ValueError as exc:
-        raise ValueError(f"Invalid canonical ISO date for {label}") from exc
-    return {"date": d, "calendar_data_version": data["calendar_data_version"], "_day": parsed}
-
-
-def reconcile_calendar_dates(client, dates):
-    """Compare named calendar DAYS, not UTC instants or unsupported country policies.
-
-    Exactly two authenticated, separately metered POST /v1/dates/convert calls.
-    All inputs are validated before quota is consumed. No local date conversion,
-    no assumed timezone, no credentials in evidence and no fake request IDs.
-    """
-    if not callable(getattr(client, "call_with_meta", None)):
-        raise TypeError("An authenticated TaghvimClient is required")
-    if not isinstance(dates, dict):
-        raise TypeError("Expected left/right date inputs")
-    left_input = _input_date(dates.get("left"), "left")
-    right_input = _input_date(dates.get("right"), "right")
-    left_raw = client.call_with_meta("POST", "/v1/dates/convert", body=left_input)
-    right_raw = client.call_with_meta("POST", "/v1/dates/convert", body=right_input)
-    left = _canonical(left_raw, "left")
-    right = _canonical(right_raw, "right")
-    same_day = left["_day"] == right["_day"]
-    same_policy = (
-        left["calendar_data_version"] == right["calendar_data_version"]
-        and (not same_day or all(
-            left["date"].get(k) == right["date"].get(k)
-            for k in ("weekday", "business_day", "predicted_holiday", "holidays")
-        ))
-    )
-    status = "policy_conflict" if not same_policy else ("equivalent" if same_day else "different")
-    left_day, right_day = left.pop("_day"), right.pop("_day")
-    return {
-        "status": 200,
-        "requestId": right_raw.get("requestId") or left_raw.get("requestId"),
-        "rateLimit": right_raw.get("rateLimit"),
-        "data": {
-            "status": status,
-            "equivalent": None if status == "policy_conflict" else same_day,
-            "scope": "calendar_day_not_instant",
-            "day_delta": (right_day - left_day).days,
-            "left": {"input": left_input, **left},
-            "right": {"input": right_input, **right},
-            "evidence": {
-                "operation": "POST /v1/dates/convert",
-                "request_ids": [left_raw.get("requestId"), right_raw.get("requestId")],
-                "meter_units": 2,
-                "calendar_data_versions": [
-                    left["calendar_data_version"], right["calendar_data_version"]
-                ],
-                "predicted_holiday_dependency": bool(
-                    left["date"].get("predicted_holiday")
-                    or right["date"].get("predicted_holiday")
-                ),
-            },
-        },
-    }
+def reconcile_calendar_dates(client,dates):
+    """Compare explicit Jalali/Gregorian/Hijri calendar days, never guessed instants."""
+    if not callable(getattr(client,"call_with_meta",None)):
+        raise TypeError("Authenticated TaghvimClient required")
+    if not isinstance(dates,dict) or set(dates)-{"left","right"}:
+        raise TypeError("Expected left/right assertions")
+    body={side:_assertion(dates.get(side),side) for side in ("left","right")}
+    result=client.call_with_meta("POST","/v1/dates/reconcile",body=body)
+    data=result.get("data") if isinstance(result,dict) else None
+    evidence=data.get("evidence") if isinstance(data,dict) else None
+    ids=evidence.get("request_ids") if isinstance(evidence,dict) else None
+    if (result.get("status")!=200 or data.get("status") not in ("equivalent","different","policy_conflict")
+        or type(data.get("day_delta")) is not int or data.get("scope")!="calendar_day_not_instant"
+        or not isinstance(evidence,dict) or evidence.get("operation")!="POST /v1/dates/reconcile"
+        or evidence.get("meter_units")!=2 or not isinstance(ids,list) or len(ids)!=1
+        or not isinstance(ids[0],str) or not re.fullmatch(r"req_[A-Za-z0-9]+",ids[0])
+        or not isinstance(evidence.get("calendar_data_versions"),list)
+        or len(evidence["calendar_data_versions"])!=2
+        or not isinstance(data.get("left"),dict) or not isinstance(data.get("right"),dict)):
+        raise ValueError("Invalid native reconciliation response")
+    if (data["status"]=="policy_conflict")!=(data.get("equivalent") is None):
+        raise ValueError("Inconsistent native reconciliation policy")
+    if result.get("requestId") and result["requestId"]!=ids[0]:
+        raise ValueError("Native reconciliation request identity mismatch")
+    return result
