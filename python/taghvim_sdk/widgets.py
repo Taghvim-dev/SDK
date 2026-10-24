@@ -10,6 +10,7 @@ from urllib.parse import quote
 WIDGET_OPERATIONS = {
     "date-picker": ("POST", "/v1/dates/convert", False),
     "dual-calendar-badge": ("POST", "/v1/dates/convert", False),
+    "date-reconciliation": ("POST", "/v1/dates/convert", False),
     "holiday-month": ("GET", "/v1/holidays", False),
     "holiday-badge": ("GET", "/v1/holidays/{date}", False),
     "business-day-badge": ("GET", "/v1/business-days/check", False),
@@ -42,6 +43,10 @@ def invoke_widget(client, widget, input=None, *, idempotency_key=None):
         raise TypeError("Widget input must be a dictionary")
     if not hasattr(client, "call") or not callable(client.call):
         raise TypeError("A server-side TaghvimClient is required")
+    if widget == "date-reconciliation":
+        if not callable(getattr(client, "reconcile_dates", None)):
+            raise TypeError("Reconciliation requires the authenticated Python SDK")
+        return client.reconcile_dates(input)
     method, path, side_effect = WIDGET_OPERATIONS[widget]
     if side_effect and (not isinstance(idempotency_key, str)
                         or not 8 <= len(idempotency_key) <= 128

@@ -37,3 +37,16 @@ class ClientTests(unittest.TestCase):
         with self.assertRaises(ValueError): sdk.call("GET","/v1/../admin")
         with self.assertRaises(ValueError): sdk.call("GET","/v1/anything?api_key=bad")
 if __name__=="__main__": unittest.main()
+
+class ClientMetaTests(unittest.TestCase):
+    @patch("urllib.request.urlopen")
+    def test_canonical_request_id_exposed_without_leaking_api_key(self, send):
+        send.return_value = FakeResponse({"date": {"iso": "2026-10-07"}},
+                                         headers={"Taghvim-Request-Id": "req_server", "RateLimit": "42"})
+        c = TaghvimClient(api_key="tgv_test_example")
+        value = c.call_with_meta("POST", "/v1/dates/convert",
+                                 body={"date": "1405-07-15", "calendar_system": "jalali"})
+        self.assertEqual(value["requestId"], "req_server")
+        self.assertEqual(value["rateLimit"], "42")
+        self.assertEqual(value["status"], 200)
+        self.assertNotIn("tgv_test_example", json.dumps(value))
