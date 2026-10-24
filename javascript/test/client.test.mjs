@@ -47,7 +47,7 @@ test("native reconciliation is exactly one authenticated request; invalid inputs
  assert.equal(new URL(calls[0].url).pathname,"/v1/dates/reconcile");
  assert.equal(calls[0].options.headers.authorization,"Bearer "+key);
  assert.deepEqual(JSON.parse(calls[0].options.body),pair);
- await assert.rejects(client.reconcileDates({left:{date:"1405-07-15"},right:pair.right}),/calendar_system/);
+ assert.throws(()=>client.reconcileDates({left:{date:"1405-07-15"},right:pair.right}),/calendar_system/);
  assert.equal(calls.length,1);
  let hits=0;
  const unavailable=createTestClient({apiKey:key,fetch:async()=>{hits++;return new Response(JSON.stringify({code:"route_not_found"}),{status:404,headers:{"content-type":"application/problem+json"}});}});
