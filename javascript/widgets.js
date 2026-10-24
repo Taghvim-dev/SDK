@@ -1,9 +1,8 @@
 /** Taghvim 2.1.0 Widget -> SDK -> API adapter. Preview; never embed API keys in HTML. */
-import {reconcileCalendarDates} from "./reconciliation.js";
 export const WIDGET_OPERATIONS = Object.freeze({
   "date-picker": {method:"POST",path:"/v1/dates/convert"},
   "dual-calendar-badge": {method:"POST",path:"/v1/dates/convert"},
-  "date-reconciliation": {method:"POST",path:"/v1/dates/convert",composite:true},
+  "date-reconciliation": {method:"POST",path:"/v1/dates/reconcile"},
   "holiday-month": {method:"GET",path:"/v1/holidays"},
   "holiday-badge": {method:"GET",path:"/v1/holidays/{date}"},
   "business-day-badge": {method:"GET",path:"/v1/business-days/check"},
@@ -35,7 +34,6 @@ export async function invokeWidget(client,kind,input={},options={}){
   if(!client||typeof client.request!=="function")throw new TypeError("Server-side TaghvimClient required");
   const op=operation(kind);
   if(!obj(input)||!obj(options))throw new TypeError("Widget input must be an object");
-  if(op.composite)return reconcileCalendarDates(client,input,options);
   if(op.sideEffect&&!idem(options.idempotencyKey))throw new TypeError("Idempotency key required");
   let path=op.path;
   for(const m of op.path.matchAll(/\{(\w+)\}/g)){
