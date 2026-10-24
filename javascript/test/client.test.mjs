@@ -31,3 +31,26 @@ test("unauthenticated health request does not send authorization",async()=>{
  const out=await client.health();
  assert.equal(auth,undefined);assert.equal(out.status,200);
 });
+
+test("native reconciliation is exactly one authenticated request; invalid inputs fail before quota and 404 never silently downgrades",async()=>{
+ const calls=[];
+ const pair={left:{date:"1405-07-15",calendar_system:"jalali",expected:{weekday:3}},
+  right:{date:"2026-10-07",calendar_system:"gregorian"}};
+ const client=createTestClient({apiKey:key,fetch:async(url,options)=>{
+  calls.push({url,options});
+  return new Response(JSON.stringify({status:"equivalent",equivalent:true,evidence:{request_ids:["req_native"],meter_units:2}}),
+   {status:200,headers:{"content-type":"application/json","Taghvim-Request-Id":"req_native"}});
+ }});
+ const result=await client.reconcileDates(pair);
+ assert.equal(result.data.status,"equivalent");
+ assert.equal(calls.length,1);
+ assert.equal(new URL(calls[0].url).pathname,"/v1/dates/reconcile");
+ assert.equal(calls[0].options.headers.authorization,"Bearer "+key);
+ assert.deepEqual(JSON.parse(calls[0].options.body),pair);
+ await assert.rejects(client.reconcileDates({left:{date:"1405-07-15"},right:pair.right}),/calendar_system/);
+ assert.equal(calls.length,1);
+ let hits=0;
+ const unavailable=createTestClient({apiKey:key,fetch:async()=>{hits++;return new Response(JSON.stringify({code:"route_not_found"}),{status:404,headers:{"content-type":"application/problem+json"}});}});
+ await assert.rejects(unavailable.reconcileDates(pair),e=>e.status===404&&e.code==="route_not_found");
+ assert.equal(hits,1,"no downgrade or second API call on missing native API");
+});
