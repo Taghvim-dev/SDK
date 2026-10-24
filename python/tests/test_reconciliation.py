@@ -61,7 +61,7 @@ class TestReconciliation(unittest.TestCase):
             with self.assertRaises(ValueError):
                 reconcile_calendar_dates(Client(), invalid)
 
-    def test_widget_uses_authenticated_sdk_composite_only(self):
+    def test_widget_uses_authenticated_native_sdk_only(self):
         class Client:
             def __init__(self): self.invoked = None
             def call(self, *_a, **_kw):
@@ -75,6 +75,22 @@ class TestReconciliation(unittest.TestCase):
         self.assertEqual(c.invoked, data)
         self.assertEqual(result["data"]["evidence"]["meter_units"], 2)
 
+    def test_python_native_client_uses_single_request_with_meta_and_does_not_fallback(self):
+        from taghvim_sdk import TaghvimClient
+        requests = []
+        c = object.__new__(TaghvimClient)
+        def api(method, path, body=None, **_kwargs):
+            requests.append((method, path, body))
+            return {"status": 200, "requestId": "req_native",
+                    "data": {"status": "equivalent", "evidence": {"request_ids": ["req_native"], "meter_units": 2}}}
+        c.call_with_meta = api
+        pair = {"left": {**self.left, "expected": {"weekday": 3}}, "right": self.right}
+        result = c.reconcile_dates(pair)
+        self.assertEqual(result["data"]["status"], "equivalent")
+        self.assertEqual(requests, [("POST", "/v1/dates/reconcile", pair)])
+        with self.assertRaises(ValueError):
+            c.reconcile_dates({"left": {"date": "1405-07-15"}, "right": self.right})
+        self.assertEqual(len(requests), 1)
 
 if __name__ == "__main__":
     unittest.main()

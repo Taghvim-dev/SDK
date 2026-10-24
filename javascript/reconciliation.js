@@ -19,7 +19,16 @@ function canonical(out, name) {
     throw new Error("Invalid canonical calendar API response for " + name);
   return {date:d,calendar_data_version:data.calendar_data_version};
 }
-/** A composite API-backed operation; exactly two independently metered calls. */
+/** Validate both explicit calendar systems before making a native or composite request. */
+export function requireReconciliationPair(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input))
+    throw new TypeError("Expected left/right date inputs");
+  inputDate(input.left, "left");
+  inputDate(input.right, "right");
+  return input;
+}
+/** Legacy composite fallback must be explicitly requested by name; never silently downgrade the native API. 
+ * Exactly two separately metered POST /v1/dates/convert calls. */
 export async function reconcileCalendarDates(client, input, options={}) {
   if (!client || typeof client.request !== "function") throw new TypeError("API client required");
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new TypeError("Expected left/right date inputs");

@@ -25,18 +25,21 @@ test("difference, policy drift and fail-closed validation",async()=>{
  await assert.rejects(reconcileCalendarDates(drift,{left:{date:"1405-07-15"},right:{date:"2026-10-07",calendar_system:"gregorian"}}),/calendar_system/);
  assert.equal(count,before,"invalid inputs must not spend API quota");
 });
-test("widget → tenant client → canonical API pair with trace evidence",async()=>{
+test("widget → tenant client → native API once, with trace evidence and BFF isolation",async()=>{
  const input={left:{date:"1405-07-15",calendar_system:"jalali"},right:{date:"2026-10-07",calendar_system:"gregorian"}};
- let called=0;
- const client={request:async()=>{called++;return day("2026-10-07");}};
+ const calls=[];
+ const client={request:async(...args)=>{calls.push(args);return {status:200,
+   data:{status:"equivalent",equivalent:true,day_delta:0,evidence:{meter_units:2,request_ids:["req_one"]}},
+   requestId:"req_one",rateLimit:"42"};}};
  const result=await invokeWidget(client,"date-reconciliation",input);
- assert.equal(result.data.status,"equivalent");assert.equal(called,2);
+ assert.equal(result.data.status,"equivalent");assert.equal(calls.length,1);
+ assert.deepEqual(calls[0],["POST","/v1/dates/reconcile",{body:input}]);
  const gateway=createWidgetGateway({clientForTenant:async id=>id==="tenant_1"?client:null,
   authorize:()=>({tenantId:"tenant_1"}),admit:()=>true,allowedOrigins:["https://widget.example.org"]});
  const request=new Request("https://widget.example.org/__taghvim/widgets",{method:"POST",
   headers:{origin:"https://widget.example.org","content-type":"application/json"},
   body:JSON.stringify({widget:"date-reconciliation",input})});
  const response=await gateway(request);
- assert.equal(response.status,200);assert.equal((await response.json()).data.status,"equivalent");
- assert.equal(called,4);
+ assert.equal(response.status,200);assert.equal((await response.json()).data.evidence.request_ids.length,1);
+ assert.equal(calls.length,2);
 });
