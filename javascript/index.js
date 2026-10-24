@@ -3,7 +3,7 @@
  * No runtime dependencies. Node >= 20 or browsers with fetch.
  * Never put live keys in public browser bundles or logs.
  */
-import {reconcileCalendarDates} from "./reconciliation.js";
+import {requireReconciliationPair} from "./reconciliation.js";
 export {reconcileCalendarDates} from "./reconciliation.js";
 const DEFAULT_BASE = "https://api.taghvim.dev";
 export class TaghvimApiError extends Error {
@@ -78,7 +78,10 @@ export class TaghvimClient {
   versions(options) { return this.request("GET", "/v1/versions", { ...options, auth: false }); }
   me(options) { return this.request("GET", "/v1/me", options); }
   convertDate(body, options) { return this.request("POST", "/v1/dates/convert", { ...options, body }); }
-  reconcileDates(body, options) { return reconcileCalendarDates(this,body,options); }
+  /** Native, one-request, tenant-authenticated T0 reconciliation. No downgrade to two conversions. */
+  reconcileDates(body, options) {
+    return this.request("POST", "/v1/dates/reconcile", { ...options, body: requireReconciliationPair(body) });
+  }
   resolveDate(body, options) { return this.request("POST", "/v1/dates/resolve", { ...options, body }); }
   addBusinessDays(body, options) { return this.request("POST", "/v1/business-days/add", { ...options, body }); }
   diffBusinessDays(body, options) { return this.request("POST", "/v1/business-days/diff", { ...options, body }); }
