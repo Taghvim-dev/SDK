@@ -4,7 +4,7 @@ export interface ApiResponse<T=unknown>{data:T;status:number;requestId:string|nu
 export class TaghvimApiError extends Error {status:number;code:string;requestId:string|null;retryAfter:string|null;problem:Record<string,unknown>|null;}
 export class TaghvimClient {
  constructor(options?:{apiKey?:string;baseUrl?:string;fetch?:typeof fetch;mode?:"test"|"live"});
- request(method:"GET"|"POST"|"DELETE",path:string,options?:RequestOptions&{body?:unknown;auth?:boolean}):Promise<ApiResponse>;
+ request(method:"GET"|"POST"|"PATCH"|"DELETE",path:string,options?:RequestOptions&{body?:unknown;auth?:boolean}):Promise<ApiResponse>;
  health(options?:RequestOptions):Promise<ApiResponse>;
  readiness(options?:RequestOptions):Promise<ApiResponse>;
  versions(options?:RequestOptions):Promise<ApiResponse>;
@@ -27,5 +27,14 @@ export class TaghvimClient {
  listWebhooks(options?:RequestOptions):Promise<ApiResponse>;
  createWebhook(body:unknown,options?:RequestOptions):Promise<ApiResponse>;
  webhookDeliveries(id:string,options?:RequestOptions):Promise<ApiResponse>;
+ getCurrentWorkspace(options?:RequestOptions):Promise<ApiResponse>;
+ createCalendar(graph:Record<string,unknown>,options:RequestOptions & {idempotencyKey:string}):Promise<ApiResponse>;
+ getCalendar(id:string,options?:RequestOptions):Promise<ApiResponse>;
+ updateCalendar(id:string,graph:Record<string,unknown>,options:RequestOptions & {idempotencyKey:string}):Promise<ApiResponse>;
+ publishCalendar(id:string,expectedVersion:number,options:RequestOptions & {idempotencyKey:string}):Promise<ApiResponse>;
+ unpublishCalendar(id:string,expectedVersion:number,options:RequestOptions & {idempotencyKey:string}):Promise<ApiResponse>;
+ publicCalendar(id:string,options?:RequestOptions):Promise<ApiResponse>;
+ publicCalendarIcs(id:string,options?:RequestOptions):Promise<ApiResponse<string>>;
+ searchPublicCalendarEvents(query?:Record<string,string|number|undefined>,options?:RequestOptions):Promise<ApiResponse>;
 }
 export function createTestClient(options:{apiKey:string;baseUrl?:string;fetch?:typeof fetch}):TaghvimClient;
