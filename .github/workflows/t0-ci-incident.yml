@@ -1,0 +1,24 @@
+# Canonical T0 repository-scoped incident controller. No untrusted PR checkout or deploy credentials.
+name: t0-ci-incident-reconciler
+on:
+  workflow_run:
+    workflows: ["public-sdk-verify"]
+    types: [completed]
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+  issues: write
+concurrency:
+  group: t0-ci-incident-${{ github.event.workflow_run.workflow_id }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+jobs:
+  reconcile:
+    if: >-
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      contains(fromJSON('["success","failure","timed_out","startup_failure","action_required"]'), github.event.workflow_run.conclusion)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Reconcile current-source incidents without bot cascade
+        uses: Taghvim-dev/.github/.github/actions/ci-incident@3721689cec671745951b2afa5b0005eeaff3d3fa
