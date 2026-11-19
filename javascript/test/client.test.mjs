@@ -54,3 +54,31 @@ test("native reconciliation is exactly one authenticated request; invalid inputs
  await assert.rejects(unavailable.reconcileDates(pair),e=>e.status===404&&e.code==="route_not_found");
  assert.equal(hits,1,"no downgrade or second API call on missing native API");
 });
+
+test("institutional calendar SDK binds one API transport, exact revision and public no-key ICS",async()=>{
+ const seen=[];
+ const fetcher=async(url,opts)=>{
+  seen.push({url,opts});
+  const isIcs=new URL(url).pathname.endsWith("/ics");
+  return new Response(isIcs?"BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n":JSON.stringify({status:"draft",version:2}),
+    {status:200,headers:{"content-type":isIcs?"text/calendar; charset=utf-8":"application/json",
+      "Taghvim-Request-Id":"req_publication_sdk"}});
+ };
+ const client=createTestClient({apiKey:key,fetch:fetcher});
+ assert.throws(()=>client.createCalendar({status:"draft"}),/Idempotency/);
+ assert.throws(()=>client.updateCalendar("cal_1",{version:2}),/Idempotency/);
+ await client.createCalendar({status:"draft"},{idempotencyKey:"sdk-create-calendar-001"});
+ await client.updateCalendar("cal_1",{version:2},{idempotencyKey:"sdk-update-calendar-001"});
+ await client.publishCalendar("cal_1",2,{idempotencyKey:"sdk-publish-calendar-001"});
+ await client.unpublishCalendar("cal_1",3,{idempotencyKey:"sdk-unpublish-calendar-001"});
+ assert.equal(seen[1].opts.method,"PATCH");
+ assert.equal(JSON.parse(seen[2].opts.body).expected_version,2);
+ assert.equal(seen[3].opts.headers["idempotency-key"],"sdk-unpublish-calendar-001");
+ const anon=new TaghvimClient({fetch:fetcher});
+ const feed=await anon.publicCalendarIcs("cal_1");
+ assert.match(feed.data,/BEGIN:VCALENDAR/);
+ assert.equal(seen.at(-1).opts.headers.authorization,undefined);
+ await anon.searchPublicCalendarEvents({q:"seminar"});
+ assert.equal(seen.at(-1).opts.headers.authorization,undefined);
+ assert.match(seen.at(-1).url,/q=seminar/);
+});

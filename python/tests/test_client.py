@@ -50,3 +50,28 @@ class ClientMetaTests(unittest.TestCase):
         self.assertEqual(value["rateLimit"], "42")
         self.assertEqual(value["status"], 200)
         self.assertNotIn("tgv_test_example", json.dumps(value))
+
+class CalendarPublicationClientTests(unittest.TestCase):
+    @patch("urllib.request.urlopen")
+    def test_mutation_and_public_ics_share_the_canonical_transport(self, sender):
+        calls = []
+        class TextResponse:
+            status = 200
+            headers = {"Content-Type":"text/calendar; charset=utf-8"}
+            def __enter__(self): return self
+            def __exit__(self,*args): return False
+            def read(self,*args): return b"BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n"
+        def fake(request, timeout=None):
+            calls.append(request)
+            return TextResponse() if request.full_url.endswith("/ics") else FakeResponse({"version":2})
+        sender.side_effect = fake
+        client=TaghvimClient(api_key="tgv_test_university")
+        result=client.update_calendar("cal_1",{"version":2},"sdk-update-calendar-0001")
+        self.assertEqual(result["version"],2)
+        self.assertEqual(calls[0].get_method(),"PATCH")
+        self.assertEqual(calls[0].get_header("Idempotency-key"),"sdk-update-calendar-0001")
+        with self.assertRaises(ValueError): client.publish_calendar("cal_1",2,"short")
+        public=TaghvimClient()
+        self.assertIn("BEGIN:VCALENDAR",public.public_calendar_ics("cal_1"))
+        self.assertIsNone(calls[-1].get_header("Authorization"))
+        with self.assertRaises(ValueError): public.get_calendar("cal_1")

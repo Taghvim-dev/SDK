@@ -51,7 +51,7 @@ The **canonical API contract** is owned and versioned by Taghvim.dev Engine. Eve
 
 ## Calendar & Date Reconciliation (API-backed early-access)
 
-Date reconciliation compares explicit **calendar days** across Jalali, Gregorian and Umm al-Qura Hijri using **two authenticated `POST /v1/dates/convert` calls** against the same tenant API. It is not yet a standalone `/v1/temporal/reconcile` API endpoint and does not reconcile timestamp instants, arbitrary holiday policies, or cross-country business calendars. `policy_conflict` is returned if the calendar data version or same-day weekday/holiday facts differ between calls; there is no silent correction. The API meters both conversions independently.
+Date reconciliation compares explicit **calendar days** across Jalali, Gregorian and Umm al-Qura Hijri in **one authenticated `POST /v1/dates/reconcile` request**, without a silent two-conversion fallback. It is not yet a standalone `/v1/temporal/reconcile` API endpoint and does not reconcile timestamp instants, arbitrary holiday policies, or cross-country business calendars. `policy_conflict` is returned if the calendar data version or same-day weekday/holiday facts differ between calls; there is no silent correction. The API meters both conversions independently.
 
 ```js
 import {createTestClient} from '@taghvim/sdk';
@@ -64,3 +64,6 @@ console.log(result.data.status, result.data.evidence.request_ids);
 ```
 
 For server-rendered widgets, call `invokeWidget(client, 'date-reconciliation', {left,right})` from `@taghvim/sdk/widgets` with a tenant-scoped key. Never expose API credentials in a public browser. A public embed requires `createWidgetGateway` with independent authentication, tenant resolution, origin allowlisting and quota admission.
+
+## Canonical institutional calendar SDK (source preview)
+The JavaScript/TypeScript and Python clients provide the same tenant-authenticated creation, optimistic version update, publish/unpublish and anonymous public calendar/ICS operations defined by the pinned Engine OpenAPI. A unique `Idempotency-Key` is required for each mutation; never put tenant API keys in browser embeds. Source parity alone does **not** certify GA or a deployed cloud Worker: the coordinated protected release must verify Engine/Sandbox D1/Production D1/SDK and public HTTP receipts at the same immutable release SHA.
