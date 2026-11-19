@@ -6,7 +6,7 @@ on:
     workflows: ["public-sdk-verify"]
     types: [completed]
   schedule:
-    - cron: '13 2 * * *'
+    - cron: '13 */6 * * *'
   workflow_dispatch:
 permissions:
   contents: read
@@ -21,9 +21,12 @@ jobs:
     if: >-
       github.event_name != 'workflow_run' ||
       (github.event.workflow_run.head_repository.full_name == github.repository &&
-       contains(fromJSON('["success","failure","timed_out","startup_failure","action_required"]'), github.event.workflow_run.conclusion))
+       (contains(fromJSON('["failure","timed_out","startup_failure","action_required"]'), github.event.workflow_run.conclusion) ||
+        (github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.event == 'push' &&
+         github.event.workflow_run.head_branch == 'main')))
     runs-on: ubuntu-24.04
     timeout-minutes: 6
     steps:
       - name: Current source/PR incident lifecycle and immutable stale-issue retirement
-        uses: Taghvim-dev/.github/.github/actions/ci-incident@af9ac08bd59d0eee2dd627979e3721caafc895ee
+        uses: Taghvim-dev/.github/.github/actions/ci-incident@a2d99736b6ad37a31e4cf6c3887f3c18c044d8c7
