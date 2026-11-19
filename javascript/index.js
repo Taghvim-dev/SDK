@@ -44,10 +44,10 @@ export class TaghvimClient {
   }
   async request(method, path, { body, query, idempotencyKey, signal, auth = true } = {}) {
     if (auth && !this.apiKey) throw new TypeError("An API key is required for this operation");
-    if (!/^(GET|POST|DELETE)$/.test(method) || typeof path !== "string" || !path.startsWith("/") || path.startsWith("//") ||
+    if (!/^(GET|POST|PATCH|DELETE)$/.test(method) || typeof path !== "string" || !path.startsWith("/") || path.startsWith("//") ||
       path.includes("?") || path.includes("#") || path.includes(".."))
       throw new TypeError("Invalid API method or path");
-    if (idempotencyKey !== undefined && (typeof idempotencyKey !== "string" || idempotencyKey.length < 8 || idempotencyKey.length > 200))
+    if (idempotencyKey !== undefined && (typeof idempotencyKey !== "string" || idempotencyKey.length < 8 || idempotencyKey.length > 128))
       throw new TypeError("Idempotency key must be between 8 and 200 characters");
     if (method === "GET" && body !== undefined) throw new TypeError("GET requests cannot send a body");
     const url = new URL(this.base + path);
@@ -98,5 +98,34 @@ export class TaghvimClient {
   listWebhooks(options) { return this.request("GET", "/v1/webhooks", options); }
   createWebhook(body, options) { return this.request("POST", "/v1/webhooks", { ...options, body }); }
   webhookDeliveries(id, options) { return this.request("GET", "/v1/webhooks/" + encodePart(id) + "/deliveries", options); }
+  getCurrentWorkspace(options) { return this.request("GET", "/v1/workspaces/current", options); }
+  createCalendar(graph, options={}) {
+    if (!options.idempotencyKey) throw new TypeError("Calendar creation requires an Idempotency-Key");
+    return this.request("POST","/v1/calendars",{...options,body:graph});
+  }
+  getCalendar(id,options) { return this.request("GET","/v1/calendars/"+encodePart(id),options); }
+  updateCalendar(id,graph,options={}) {
+    if (!options.idempotencyKey) throw new TypeError("Updating a calendar requires an Idempotency-Key");
+    return this.request("PATCH","/v1/calendars/"+encodePart(id),{...options,body:graph});
+  }
+  publishCalendar(id,expectedVersion,options={}) {
+    if (!options.idempotencyKey) throw new TypeError("Publishing requires an Idempotency-Key");
+    return this.request("POST","/v1/calendars/"+encodePart(id)+"/publish",
+      {...options,body:{expected_version:expectedVersion}});
+  }
+  unpublishCalendar(id,expectedVersion,options={}) {
+    if (!options.idempotencyKey) throw new TypeError("Unpublishing requires an Idempotency-Key");
+    return this.request("POST","/v1/calendars/"+encodePart(id)+"/unpublish",
+      {...options,body:{expected_version:expectedVersion}});
+  }
+  publicCalendar(id,options) {
+    return this.request("GET","/v1/public/calendars/"+encodePart(id),{...options,auth:false});
+  }
+  publicCalendarIcs(id,options) {
+    return this.request("GET","/v1/public/calendars/"+encodePart(id)+"/ics",{...options,auth:false});
+  }
+  searchPublicCalendarEvents(query={},options) {
+    return this.request("GET","/v1/public/calendar-search",{...options,auth:false,query});
+  }
 }
 export function createTestClient(options) { return new TaghvimClient({ ...options, mode: "test" }); }
