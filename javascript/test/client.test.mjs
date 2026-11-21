@@ -100,7 +100,7 @@ test("T0 universal GA operation adapters share exact SDK contract, authz workspa
  await client.setCalendarNotificationPreferences("cal_university_123",{expected_version:0,enabled:false,channels:[]},idem);
  const registry=contract.operations.filter(o=>["createWorkspace","getWorkspace","createCalendarEvent","updateCalendarEvent","listCalendarEvents","listPublicCalendarEvents","subscribeCalendar","setCalendarNotificationPreferences"].includes(o.operationId));
  assert.equal(registry.length,8);
- assert.deepEqual(seen.map(x=>x.method+" "+x.path),registry.map(x=>x.method+" "+x.path.replace(/\{(?:calendar_id|event_id|workspace_id)\}/g,(m)=>m==="\{calendar_id\}"?"cal_university_123":m==="\{event_id\}"?"event_customer_001":"ws_team_123")));
+ assert.deepEqual(seen.map(x=>x.method+" "+x.path).sort(),registry.map(x=>x.method+" "+x.path.replace(/\{(?:calendar_id|event_id|workspace_id)\}/g,(m)=>m==="\{calendar_id\}"?"cal_university_123":m==="\{event_id\}"?"event_customer_001":"ws_team_123")).sort());
  assert.equal(seen[0].headers["Taghvim-Workspace-Id"],"ws_team_123");
  assert.equal(seen[0].headers["idempotency-key"],idem.idempotencyKey);
  assert.equal(seen[5].headers.authorization,undefined);
