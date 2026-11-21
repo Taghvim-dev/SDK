@@ -101,3 +101,18 @@ test("MCP stdio emits one JSON-RPC result per newline and no extra stdout chatte
  assert.equal(lines.length,2);assert.equal(lines[0].id,40);assert.equal(lines[1].id,41);
  assert.equal(lines[1].result.tools.length>0,true);
 });
+
+test("semantic reconciliation and date calculations are effect-free MCP POST tools",async()=>{
+ const calls=[],b=mk(calls);
+ const tools=b.tools;
+ assert.ok(tools.some(x=>x.name==="taghvim_reconcileDates"&&x.annotations.readOnlyHint===true));
+ assert.ok(tools.some(x=>x.name==="taghvim_convertDate"&&x.annotations.readOnlyHint===true));
+ assert.ok(!tools.some(x=>x.name==="taghvim_publishCalendar"),"effectful publication stays denied");
+ const body={left:{date:"1405-07-15",calendar_system:"jalali"},right:{date:"2026-10-07",calendar_system:"gregorian"}};
+ const r=await b.handle(req(60,"tools/call",{name:"taghvim_reconcileDates",arguments:{body}}));
+ assert.equal(r.result.isError,false);
+ assert.deepEqual(calls,[{method:"POST",path:"/v1/dates/reconcile",opts:{body,auth:true}}]);
+ const invalid=await b.handle(req(61,"tools/call",{name:"taghvim_reconcileDates",arguments:{body,idempotencyKey:"not-an-effect"}}));
+ assert.equal(invalid.error.code,-32602);
+ assert.equal(calls.length,1);
+});

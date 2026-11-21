@@ -29,6 +29,11 @@ const ALLOWED=new Set([
  "listWebhookDeliveries","testWebhook","listEventLog"
 ]);
 const PUBLIC=new Set(["getPublicCalendar","getPublicCalendarIcs","listPublicCalendarEvents","searchPublicCalendarEvents"]);
+// These POST operations have idempotency:none in the canonical Engine contract:
+// they calculate/preview but do not change customer business state.
+const PURE_POST=new Set(["convertDate","reconcileDates","resolveDate",
+ "addBusinessDays","diffBusinessDays","isBusinessDay","dueSla","previewReminders","previewSchedule"]);
+const effectFree=op=>op.method==="GET"||(op.method==="POST"&&PURE_POST.has(op.operationId));
 const NEVER_EXPOSE=new Set([
  "createTenant","createApiKey","revokeApiKey","exportBilling",
  "createPaymentIntent","getPaymentIntent","verifyPaymentIntent",
@@ -47,7 +52,7 @@ const status=(name,op)=>({name:"taghvim_"+name,description:op.method+" "+op.path
   idempotencyKey:{type:"string",minLength:8,maxLength:128}
  },additionalProperties:false,
  ...(op.path.includes("{")?{required:["path"]}:{})
-},annotations:{readOnlyHint:op.method==="GET",destructiveHint:op.method!=="GET",openWorldHint:false}});
+},annotations:{readOnlyHint:effectFree(op),destructiveHint:!effectFree(op),openWorldHint:false}});
 function routePath(template,values){
  const vars=[...template.matchAll(/{([a-z_]+)}/g)].map(x=>x[1]);
  if(vars.length!==new Set(vars).size)throw new TypeError("Duplicate path parameters");
@@ -70,7 +75,10 @@ function validateArgs(a,op,writeEnabled){
   throw new TypeError("Invalid query");
  if(a.body!==undefined&&!isObject(a.body))throw new TypeError("Body must be an object");
  if(op.method==="GET"){
-  if(a.body!==undefined||a.idempotencyKey!==undefined)throw new TypeError("Read-only tool forbids writes");
+  if(a.body!==undefined||a.idempotencyKey!==undefined)throw new TypeError("GET forbids body and idempotency");
+ }else if(effectFree(op)){
+  if(a.body===undefined||a.idempotencyKey!==undefined)
+   throw new TypeError("Pure calculation requires body and forbids mutation idempotency");
  }else{
   if(!writeEnabled)throw new TypeError("MCP mutations denied until explicit write authority");
   if(!a.idempotencyKey||typeof a.idempotencyKey!=="string"||!/^[-_A-Za-z0-9:]{8,128}$/.test(a.idempotencyKey))
@@ -101,7 +109,7 @@ export function createTaghvimMcpBridge({client,writeEnabled=false,operationIndex
  }
  const names=[...lookup.keys()].sort();
  if(names.length!==ALLOWED.size)throw new TypeError("Missing canonical MCP operation: block catalog");
- const tools=Object.freeze(names.filter(n=>writeEnabled||lookup.get(n).method==="GET").map(n=>status(n,lookup.get(n))));
+ const tools=Object.freeze(names.filter(n=>writeEnabled||effectFree(lookup.get(n))).map(n=>status(n,lookup.get(n))));
  async function handle(req){
   const id=req?.id??null;
   if(!isObject(req)||req.jsonrpc!=="2.0"||typeof req.method!=="string"||
@@ -121,7 +129,7 @@ export function createTaghvimMcpBridge({client,writeEnabled=false,operationIndex
   const name=req.params.name;
   const key=typeof name==="string"&&name.startsWith("taghvim_")?name.slice(8):null;
   const op=lookup.get(key);
-  if(!op||(!writeEnabled&&op.method!=="GET"))return rpcError(id,-32602,"Tool not admitted by canonical contract");
+  if(!op||(!writeEnabled&&!effectFree(op)))return rpcError(id,-32602,"Tool not admitted by canonical contract");
   let validated;
   try{validated=validateArgs(req.params.arguments??{},op,writeEnabled);}
   catch{return rpcError(id,-32602,"Invalid or unauthorized tool arguments");}

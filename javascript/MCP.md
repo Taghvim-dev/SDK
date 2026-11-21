@@ -9,7 +9,7 @@ From the javascript package on Node 22+:
     TAGHVIM_API_KEY=<issued-tgv_test_key> node bin/taghvim-mcp.mjs
 
 Supply keys using the MCP host's secure environment store, never in prompts, tool arguments, URLs or GitHub files.
-Default is READ ONLY. For canonical nonpayment Workspace/calendar writes:
+Default is READ ONLY (including pure POST date conversion/reconciliation/preview). For canonical nonpayment Workspace/calendar writes:
 
     TAGHVIM_MCP_ALLOW_MUTATIONS=true TAGHVIM_API_KEY=<issued-key> node bin/taghvim-mcp.mjs
 
