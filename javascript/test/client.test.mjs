@@ -106,5 +106,5 @@ test("T0 universal GA operation adapters share exact SDK contract, authz workspa
  assert.equal(seen[5].headers.authorization,undefined);
  assert.equal(seen[6].headers.authorization,"Bearer "+key);
  assert.throws(()=>client.createCalendarEvent("cal_university_123",{},{}),/Idempotency/);
- assert.throws(()=>client.createWorkspace({kind:"partner"},{idempotencyKey:idem.idempotencyKey,workspaceId:"../invalid"}),/Workspace/);
+ await assert.rejects(client.createWorkspace({kind:"partner"},{idempotencyKey:idem.idempotencyKey,workspaceId:"../invalid"}),/Workspace/);
 });
