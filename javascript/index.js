@@ -160,5 +160,14 @@ export class TaghvimClient {
   searchPublicCalendarEvents(query={},options) {
     return this.request("GET","/v1/public/calendar-search",{...options,auth:false,query});
   }
+  /** A request is not a handle reservation, entitlement, public listing, or activation. */
+  requestHandle(body,options={}) {
+    if(!options.idempotencyKey)throw new TypeError("Handle request requires an Idempotency-Key");
+    return this.request("POST","/v1/handles/requests",{...options,body});
+  }
+  /** Public, read-only, published-source-gated discovery; no bearer credential. */
+  discoverHandles(query={},options) {
+    return this.request("GET","/v1/public/handles",{...options,auth:false,query});
+  }
 }
 export function createTestClient(options) { return new TaghvimClient({ ...options, mode: "test" }); }
