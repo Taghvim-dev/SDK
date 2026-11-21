@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtempSync,writeFileSync,chmodSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {execFileSync,spawnSync} from 'node:child_process';
 const ZERO='0'.repeat(40);
 const git=(dir,...args)=>execFileSync('git',args,{cwd:dir,encoding:'utf8'}).trim();
@@ -16,7 +17,7 @@ function init(t){
  writeFileSync(join(bin,'npm'),'#!/bin/sh\n[ "$1" = run ] && [ "$2" = t0:preflight ]\n');
  chmodSync(join(bin,'npm'),0o755);
  const env={...process.env,PATH:bin+':'+process.env.PATH};
- const hook=join(process.cwd(),'.githooks','pre-push');
+ const hook=fileURLToPath(new URL('../../.githooks/pre-push',import.meta.url));
  const run=input=>spawnSync('sh',[hook],{cwd:dir,input,env,encoding:'utf8'});
  return {dir,bin,sha,run};
 }
@@ -26,16 +27,16 @@ test('tested HEAD can be pushed',t=>{
 test('other SHA or mixed outgoing refs block the entire push',t=>{
  const f=init(t);git(f.dir,'checkout','-qb','other');writeFileSync(join(f.dir,'data'),'updated');git(f.dir,'add','.');git(f.dir,'commit','-qm','other');
  const other=git(f.dir,'rev-parse','HEAD');git(f.dir,'checkout','-q','main');
- assert.notEqual(f.run(`refs/heads/other ${other} refs/heads/other ${ZERO}\n`).status,0);
- assert.notEqual(f.run(`refs/heads/main ${f.sha} refs/heads/main ${ZERO}\nrefs/heads/other ${other} refs/heads/other ${ZERO}\n`).status,0);
+ const wrong=f.run(`refs/heads/other ${other} refs/heads/other ${ZERO}\n`); assert.notEqual(wrong.status,0);assert.match(wrong.stderr,/T0_PRE_PUSH_BLOCKED/);
+ const mixed=f.run(`refs/heads/main ${f.sha} refs/heads/main ${ZERO}\nrefs/heads/other ${other} refs/heads/other ${ZERO}\n`);assert.notEqual(mixed.status,0);assert.match(mixed.stderr,/T0_PRE_PUSH_BLOCKED/);
 });
 test('tags, deletes, empty and malformed ref manifests deny before effect',t=>{
  const f=init(t);
  for(const input of [`(delete) ${ZERO} refs/heads/main ${f.sha}\n`,`refs/tags/x ${f.sha} refs/tags/x ${ZERO}\n`,'',`refs/heads/main ${f.sha} refs/heads/main\n`])
-  assert.notEqual(f.run(input).status,0);
+  {const denied=f.run(input);assert.notEqual(denied.status,0);assert.match(denied.stderr,/T0_PRE_PUSH_BLOCKED/);}
 });
 test('preflight cannot change validated checkout',t=>{
  const f=init(t);writeFileSync(join(f.bin,'npm'),'#!/bin/sh\ngit -c user.name=T0 -c user.email=test@example.invalid commit --allow-empty -qm raced\n');
  const result=f.run(`refs/heads/main ${f.sha} refs/heads/main ${ZERO}\n`);
- assert.notEqual(result.status,0);assert.match(result.stderr,/HEAD changed/);
+ assert.notEqual(result.status,0);assert.match(result.stderr,/T0_PRE_PUSH_BLOCKED: HEAD changed/);
 });
