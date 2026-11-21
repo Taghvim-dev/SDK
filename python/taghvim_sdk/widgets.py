@@ -21,6 +21,14 @@ WIDGET_OPERATIONS = {
     "recurrence-builder": ("POST", "/v1/schedules/preview", False),
     "agent-schedule-preview": ("POST", "/v1/schedules/preview", False),
     "webhook-test": ("POST", "/v1/webhooks/{id}/test", True),
+    "workspace-create": ("POST", "/v1/workspaces", True),
+    "workspace-read": ("GET", "/v1/workspaces/{workspace_id}", False),
+    "calendar-event-create": ("POST", "/v1/calendars/{calendar_id}/events", True),
+    "calendar-event-update": ("PATCH", "/v1/calendars/{calendar_id}/events/{event_id}", True),
+    "calendar-event-list": ("GET", "/v1/calendars/{calendar_id}/events", False),
+    "public-calendar-events": ("GET", "/v1/public/calendars/{calendar_id}/events", False),
+    "calendar-ics-subscribe": ("POST", "/v1/public/calendars/{calendar_id}/subscriptions", True),
+    "calendar-notification-preferences": ("PATCH", "/v1/calendars/{calendar_id}/notification-preferences", True),
 }
 WIDGET_BLOCKED = frozenset(("booking", "availability", "workflow-run", "agent-execution"))
 
@@ -29,7 +37,7 @@ class WidgetUnavailable(ValueError):
     """The requested widget does not have a published canonical API endpoint."""
 
 
-def invoke_widget(client, widget, input=None, *, idempotency_key=None):
+def invoke_widget(client, widget, input=None, *, idempotency_key=None, workspace_id=None):
     """Call the canonical Engine operation using an authenticated Python SDK.
 
     The caller is responsible for user/session authorization and per-tenant
@@ -55,10 +63,13 @@ def invoke_widget(client, widget, input=None, *, idempotency_key=None):
     payload = input.copy()
     for name in re.findall(r"\{([a-z_]+)\}", path):
         value = payload.pop(name, None)
-        if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", value):
+        if not isinstance(value, str) or not re.fullmatch(
+                r"[A-Za-z][A-Za-z0-9_.:-]{3,159}" if name in ("calendar_id", "event_id", "workspace_id")
+                else r"[A-Za-z0-9_-]{1,128}", value):
             raise ValueError("Invalid widget path parameter")
         path = path.replace("{" + name + "}", quote(value, safe=""))
-    return client.call(method, path,
-                       body=payload if method != "GET" else None,
-                       idempotency_key=idempotency_key,
-                       query=payload if method == "GET" else None)
+    kwargs={"body":payload if method != "GET" else None,
+            "idempotency_key":idempotency_key,"query":payload if method == "GET" else None}
+    if workspace_id is not None:
+        kwargs["workspace_id"]=workspace_id
+    return client.call(method,path,**kwargs)
