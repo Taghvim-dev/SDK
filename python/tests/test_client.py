@@ -75,3 +75,26 @@ class CalendarPublicationClientTests(unittest.TestCase):
         self.assertIn("BEGIN:VCALENDAR",public.public_calendar_ics("cal_1"))
         self.assertIsNone(calls[-1].get_header("Authorization"))
         with self.assertRaises(ValueError): public.get_calendar("cal_1")
+
+class UniversalGAAdapterTests(unittest.TestCase):
+    @patch("urllib.request.urlopen")
+    def test_shared_http_transport_and_workspace_selector(self, sender):
+        calls = []
+        def fake(req, timeout=None):
+            calls.append(req)
+            return FakeResponse({"ok": True})
+        sender.side_effect = fake
+        client = TaghvimClient(api_key="tgv_test_example")
+        client.create_workspace({"kind": "partner"}, "canonical-ga-create-workspace", "ws_team_123")
+        client.create_calendar_event("cal_shared", {"expected_version": 1}, "canonical-ga-create-event")
+        client.update_calendar_event("cal_shared", "event_customer_001", {"expected_version": 2}, "canonical-ga-update-event")
+        client.public_calendar_events("cal_shared")
+        client.subscribe_calendar("cal_shared", "canonical-ga-ics-subscribe")
+        client.set_calendar_notification_preferences("cal_shared", {"expected_version": 0, "enabled": False, "channels": []}, "canonical-ga-prefs-optout")
+        self.assertEqual(len(calls), 6)
+        self.assertEqual(calls[0].get_header("Taghvim-workspace-id"), "ws_team_123")
+        self.assertEqual(calls[2].get_method(), "PATCH")
+        self.assertIn("event_customer_001", calls[2].full_url)
+        self.assertIsNone(calls[3].get_header("Authorization"))
+        with self.assertRaises(ValueError):
+            client.create_workspace({"kind":"partner"}, "canonical-ga-invalid-ws", "../invalid")

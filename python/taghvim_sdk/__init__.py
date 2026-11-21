@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Taghvim.dev Python client, early access preview; Apache-2.0."""
 import json
+import re
 import urllib.error
 import urllib.request
 from urllib.parse import quote, urlsplit, urlencode
@@ -26,11 +27,11 @@ class TaghvimClient:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
-    def call(self, method, path, body=None, idempotency_key=None, query=None, auth=True):
+    def call(self, method, path, body=None, idempotency_key=None, query=None, auth=True, workspace_id=None):
         """Backwards-compatible API response payload (not a synthetic SDK result)."""
-        return self.call_with_meta(method, path, body, idempotency_key, query, auth=auth)["data"]
+        return self.call_with_meta(method, path, body, idempotency_key, query, auth=auth, workspace_id=workspace_id)["data"]
 
-    def call_with_meta(self, method, path, body=None, idempotency_key=None, query=None, auth=True):
+    def call_with_meta(self, method, path, body=None, idempotency_key=None, query=None, auth=True, workspace_id=None):
         """Canonical payload and HTTP evidence; never put the API key into a response."""
         if method not in ("GET", "POST", "PATCH", "DELETE") or not path.startswith("/v1/") or "?" in path or "#" in path or ".." in path or "//" in path:
             raise ValueError("Invalid API route")
@@ -45,6 +46,10 @@ class TaghvimClient:
         }
         if auth:
             headers["Authorization"] = f"Bearer {self.api_key}"
+        if workspace_id is not None:
+            if not isinstance(workspace_id, str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_:-]{3,127}", workspace_id):
+                raise ValueError("Invalid Workspace selector")
+            headers["Taghvim-Workspace-Id"] = workspace_id
         if body is not None:
             headers["Content-Type"] = "application/json"
         if idempotency_key is not None:
@@ -104,6 +109,35 @@ class TaghvimClient:
 
     def get_current_workspace(self):
         return self.call("GET", "/v1/workspaces/current")
+
+
+    def create_workspace(self, body, idempotency_key, workspace_id=None):
+        return self.call("POST", "/v1/workspaces", body, self._mutation_key(idempotency_key), workspace_id=workspace_id)
+
+    def get_workspace(self, workspace_id):
+        return self.call("GET", "/v1/workspaces/" + self._calendar_id(workspace_id))
+
+    def create_calendar_event(self, calendar_id, body, idempotency_key, workspace_id=None):
+        return self.call("POST", "/v1/calendars/" + self._calendar_id(calendar_id) + "/events",
+                         body, self._mutation_key(idempotency_key), workspace_id=workspace_id)
+
+    def update_calendar_event(self, calendar_id, event_id, body, idempotency_key, workspace_id=None):
+        return self.call("PATCH", "/v1/calendars/" + self._calendar_id(calendar_id) + "/events/" + self._calendar_id(event_id),
+                         body, self._mutation_key(idempotency_key), workspace_id=workspace_id)
+
+    def list_calendar_events(self, calendar_id, workspace_id=None):
+        return self.call("GET", "/v1/calendars/" + self._calendar_id(calendar_id) + "/events", workspace_id=workspace_id)
+
+    def public_calendar_events(self, calendar_id):
+        return self.call("GET", "/v1/public/calendars/" + self._calendar_id(calendar_id) + "/events", auth=False)
+
+    def subscribe_calendar(self, calendar_id, idempotency_key, workspace_id=None):
+        return self.call("POST", "/v1/public/calendars/" + self._calendar_id(calendar_id) + "/subscriptions",
+                         {"channel": "ics"}, self._mutation_key(idempotency_key), workspace_id=workspace_id)
+
+    def set_calendar_notification_preferences(self, calendar_id, body, idempotency_key, workspace_id=None):
+        return self.call("PATCH", "/v1/calendars/" + self._calendar_id(calendar_id) + "/notification-preferences",
+                         body, self._mutation_key(idempotency_key), workspace_id=workspace_id)
 
     def create_calendar(self, graph, idempotency_key):
         return self.call("POST", "/v1/calendars", graph, self._mutation_key(idempotency_key))
