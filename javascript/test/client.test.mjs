@@ -82,3 +82,29 @@ test("institutional calendar SDK binds one API transport, exact revision and pub
  assert.equal(seen.at(-1).opts.headers.authorization,undefined);
  assert.match(seen.at(-1).url,/q=seminar/);
 });
+
+test("T0 universal GA operation adapters share exact SDK contract, authz workspace and idempotency",async()=>{
+ const seen=[];
+ const client=createTestClient({apiKey:key,fetch:async(url,opts)=>{
+  seen.push({path:new URL(url).pathname,headers:opts.headers,body:opts.body,method:opts.method});
+  return new Response(JSON.stringify({ok:true}),{status:200,headers:{"content-type":"application/json","Taghvim-Request-Id":"req_ga_shared"}});
+ }});
+ const idem={idempotencyKey:"ga-sdk-idem-20261121",workspaceId:"ws_team_123"};
+ await client.createWorkspace({kind:"partner"},idem);
+ await client.getWorkspace("ws_team_123");
+ await client.createCalendarEvent("cal_university_123",{expected_version:1,entity:{id:"event_customer_001"},occurrences:[]},idem);
+ await client.updateCalendarEvent("cal_university_123","event_customer_001",{expected_version:2,entity:{id:"event_customer_001"},occurrences:[]},idem);
+ await client.listCalendarEvents("cal_university_123",{workspaceId:"ws_team_123"});
+ await client.publicCalendarEvents("cal_university_123");
+ await client.subscribeCalendar("cal_university_123",{channel:"ics"},idem);
+ await client.setCalendarNotificationPreferences("cal_university_123",{expected_version:0,enabled:false,channels:[]},idem);
+ const registry=contract.operations.filter(o=>["createWorkspace","getWorkspace","createCalendarEvent","updateCalendarEvent","listCalendarEvents","listPublicCalendarEvents","subscribeCalendar","setCalendarNotificationPreferences"].includes(o.operationId));
+ assert.equal(registry.length,8);
+ assert.deepEqual(seen.map(x=>x.method+" "+x.path).sort(),registry.map(x=>x.method+" "+x.path.replace(/\{(?:calendar_id|event_id|workspace_id)\}/g,(m)=>m==="\{calendar_id\}"?"cal_university_123":m==="\{event_id\}"?"event_customer_001":"ws_team_123")).sort());
+ assert.equal(seen[0].headers["Taghvim-Workspace-Id"],"ws_team_123");
+ assert.equal(seen[0].headers["idempotency-key"],idem.idempotencyKey);
+ assert.equal(seen[5].headers.authorization,undefined);
+ assert.equal(seen[6].headers.authorization,"Bearer "+key);
+ assert.throws(()=>client.createCalendarEvent("cal_university_123",{},{}),/Idempotency/);
+ await assert.rejects(client.createWorkspace({kind:"partner"},{idempotencyKey:idem.idempotencyKey,workspaceId:"../invalid"}),/Workspace/);
+});
