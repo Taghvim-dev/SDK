@@ -1,0 +1,11 @@
+#!/bin/sh
+# T0 deterministic pre-effect gate for developer and agent local git pushes.
+set -eu
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+if [ -n "$(git status --porcelain)" ]; then
+  echo "T0_PRE_PUSH_BLOCKED: commit and reconcile the full worktree first" >&2
+  exit 1
+fi
+git diff --check HEAD
+npm run t0:preflight

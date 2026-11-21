@@ -5,6 +5,8 @@
   "type": "module",
   "license": "Apache-2.0",
   "scripts": {
-    "test": "node scripts/check-release.mjs && node scripts/check-contract.mjs && node --test javascript/test/*.test.mjs"
+    "test": "node scripts/check-release.mjs && node scripts/check-contract.mjs && node --test javascript/test/*.test.mjs",
+    "prepare": "node scripts/t0-install-hook.mjs",
+    "t0:preflight": "npm test"
   }
 }
