@@ -81,3 +81,17 @@ test("gateway never allows a shared key or unverified tenant to cross ownership 
   assert.equal((await good.json()).requestId,"req_isolated");
   assert.deepEqual(mapped,["tenant_valid"]);
 });
+
+test("GA widget operations invoke canonical scoped SDK routes, never a shadow calendar",async()=>{
+ const ids=["workspace-create","workspace-read","calendar-event-create","calendar-event-update",
+ "calendar-event-list","public-calendar-events","calendar-ics-subscribe","calendar-notification-preferences"];
+ for(const id of ids)assert.ok(WIDGET_OPERATIONS[id]&&!WIDGET_OPERATIONS[id].unavailable,id);
+ let seen;const client={request:async(...args)=>{seen=args;return {data:{ok:true},status:200,requestId:"req_ga",rateLimit:"50"};}};
+ await invokeWidget(client,"calendar-event-update",
+  {calendar_id:"cal_sdk_0001",event_id:"event_customer_001",expected_version:2},
+  {idempotencyKey:"ga-widget-idempotent-20261121",workspaceId:"ws_sdk_0001"});
+ assert.equal(seen[0],"PATCH");
+ assert.equal(seen[1],"/v1/calendars/cal_sdk_0001/events/event_customer_001");
+ assert.equal(seen[2].workspaceId,"ws_sdk_0001");
+ await assert.rejects(invokeWidget(client,"calendar-ics-subscribe",{calendar_id:"cal_sdk_0001"}),/Idempotency/);
+});

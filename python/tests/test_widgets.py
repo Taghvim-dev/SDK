@@ -31,3 +31,21 @@ class TestWidgetContract(unittest.TestCase):
 
 if __name__=="__main__":
     unittest.main()
+
+class GaWidgetSourceParityTests(unittest.TestCase):
+    def test_new_widget_routes_and_scoped_calls(self):
+        for name in ("workspace-create","workspace-read","calendar-event-create","calendar-event-update",
+                     "calendar-event-list","public-calendar-events","calendar-ics-subscribe",
+                     "calendar-notification-preferences"):
+            self.assertIn(name,WIDGET_OPERATIONS)
+        class Client:
+            def call(self,method,path,body=None,idempotency_key=None,query=None,workspace_id=None):
+                self.last=(method,path,body,idempotency_key,query,workspace_id)
+                return {"ok":True}
+        c=Client()
+        result=invoke_widget(c,"calendar-event-update",
+            {"calendar_id":"cal_sdk_0001","event_id":"event_customer_001","expected_version":2},
+            idempotency_key="ga-sdk-widget-py-idem",workspace_id="ws_sdk_0001")
+        self.assertTrue(result["ok"])
+        self.assertEqual(c.last[0],"PATCH")
+        self.assertEqual(c.last[-1],"ws_sdk_0001")

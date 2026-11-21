@@ -6,6 +6,10 @@ assert.equal(index.contractVersion,"2.1.0");
 assert.match(index.openApiGitBlobSHA,/^[0-9a-f]{40}$/);
 assert.ok(index.operations.length>=47,"Canonical public operation contract shrank");
 for(const [method,path] of [
+ ["POST","/v1/workspaces"],["GET","/v1/workspaces/{workspace_id}"],
+ ["POST","/v1/calendars/{calendar_id}/events"],["PATCH","/v1/calendars/{calendar_id}/events/{event_id}"],
+ ["GET","/v1/calendars/{calendar_id}/events"],["GET","/v1/public/calendars/{calendar_id}/events"],
+ ["POST","/v1/public/calendars/{calendar_id}/subscriptions"],["PATCH","/v1/calendars/{calendar_id}/notification-preferences"],
  ["GET","/v1/workspaces/current"],["POST","/v1/calendars"],
  ["PATCH","/v1/calendars/{calendar_id}"],["POST","/v1/calendars/{calendar_id}/publish"],
  ["POST","/v1/calendars/{calendar_id}/unpublish"],

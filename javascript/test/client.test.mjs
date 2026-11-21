@@ -82,3 +82,30 @@ test("institutional calendar SDK binds one API transport, exact revision and pub
  assert.equal(seen.at(-1).opts.headers.authorization,undefined);
  assert.match(seen.at(-1).url,/q=seminar/);
 });
+
+test("eight new Engine canonical operations share SDK auth, workspace and idempotency",async()=>{
+ const ids=["createWorkspace","getWorkspace","createCalendarEvent","updateCalendarEvent",
+ "listCalendarEvents","listPublicCalendarEvents","subscribeCalendar","setCalendarNotificationPreferences"];
+ for(const id of ids)assert.equal(contract.operations.filter(x=>x.operationId===id).length,1,id);
+ const calls=[];
+ const fetcher=async(url,options)=>{calls.push({url,options});return new Response(JSON.stringify({ok:true}),{
+  status:200,headers:{"content-type":"application/json","Taghvim-Request-Id":"req_sdk_ga"}})};
+ const c=createTestClient({apiKey:key,fetch:fetcher});
+ const opts={idempotencyKey:"sdk-ga-20261121-idempotent",workspaceId:"ws_sdk_0001"};
+ await c.createWorkspace({kind:"partner"},opts);
+ await c.getWorkspace("ws_sdk_0001");
+ await c.createCalendarEvent("cal_sdk_0001",{expected_version:1},opts);
+ await c.updateCalendarEvent("cal_sdk_0001","event_customer_001",{expected_version:2},opts);
+ await c.listCalendarEvents("cal_sdk_0001",{workspaceId:"ws_sdk_0001"});
+ await c.subscribeCalendar("cal_sdk_0001",opts);
+ await c.setCalendarNotificationPreferences("cal_sdk_0001",{expected_version:0,enabled:false,channels:[]},opts);
+ assert.equal(calls[0].options.headers["Taghvim-Workspace-Id"],"ws_sdk_0001");
+ assert.equal(calls[3].options.method,"PATCH");
+ assert.ok(calls[3].url.endsWith("/events/event_customer_001"));
+ assert.deepEqual(JSON.parse(calls[5].options.body),{channel:"ics"});
+ const publicClient=new TaghvimClient({fetch:fetcher});
+ await publicClient.listPublicCalendarEvents("cal_sdk_0001");
+ assert.equal(calls.at(-1).options.headers.authorization,undefined);
+ assert.throws(()=>c.createWorkspace({kind:"team"}),/Idempotency/);
+ await assert.rejects(c.getWorkspace("ws_sdk_0001",{workspaceId:"../../oops"}),/Workspace/);
+});

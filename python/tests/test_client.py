@@ -75,3 +75,28 @@ class CalendarPublicationClientTests(unittest.TestCase):
         self.assertIn("BEGIN:VCALENDAR",public.public_calendar_ics("cal_1"))
         self.assertIsNone(calls[-1].get_header("Authorization"))
         with self.assertRaises(ValueError): public.get_calendar("cal_1")
+
+class GaSourceParityTests(unittest.TestCase):
+    @patch("urllib.request.urlopen")
+    def test_workspace_event_ics_and_private_scope(self,sender):
+        calls=[]
+        def fake(req,timeout=None):
+            calls.append(req)
+            return FakeResponse({"ok":True})
+        sender.side_effect=fake
+        c=TaghvimClient(api_key="tgv_test_example")
+        c.create_workspace({"kind":"partner"},"ga-sdk-py-workspace-20261121",workspace_id="ws_sdk_0001")
+        self.assertEqual(calls[-1].get_header("Taghvim-workspace-id"),"ws_sdk_0001")
+        c.get_workspace("ws_sdk_0001")
+        c.create_calendar_event("cal_sdk_0001",{"expected_version":1},"ga-sdk-py-event-create")
+        c.update_calendar_event("cal_sdk_0001","event_customer_001",{"expected_version":2},"ga-sdk-py-event-update")
+        self.assertIn("event_customer_001",calls[-1].full_url)
+        c.list_calendar_events("cal_sdk_0001",workspace_id="ws_sdk_0001")
+        c.subscribe_calendar("cal_sdk_0001","ga-sdk-py-subscription")
+        self.assertEqual(json.loads(calls[-1].data)["channel"],"ics")
+        c.set_calendar_notification_preferences("cal_sdk_0001",
+            {"expected_version":0,"enabled":False,"channels":[]},"ga-sdk-py-pref-update")
+        TaghvimClient().list_public_calendar_events("cal_sdk_0001")
+        self.assertIsNone(calls[-1].get_header("Authorization"))
+        with self.assertRaises(ValueError):
+            c.create_workspace({"kind":"partner"},"ga-sdk-py-bad-scope",workspace_id="../../escape")

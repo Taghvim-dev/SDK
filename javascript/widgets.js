@@ -13,6 +13,14 @@ export const WIDGET_OPERATIONS = Object.freeze({
   "recurrence-builder": {method:"POST",path:"/v1/schedules/preview"},
   "agent-schedule-preview": {method:"POST",path:"/v1/schedules/preview"},
   "webhook-test": {method:"POST",path:"/v1/webhooks/{id}/test",sideEffect:true},
+  "workspace-create": {method:"POST",path:"/v1/workspaces",sideEffect:true},
+  "workspace-read": {method:"GET",path:"/v1/workspaces/{workspace_id}"},
+  "calendar-event-create": {method:"POST",path:"/v1/calendars/{calendar_id}/events",sideEffect:true},
+  "calendar-event-update": {method:"PATCH",path:"/v1/calendars/{calendar_id}/events/{event_id}",sideEffect:true},
+  "calendar-event-list": {method:"GET",path:"/v1/calendars/{calendar_id}/events"},
+  "public-calendar-events": {method:"GET",path:"/v1/public/calendars/{calendar_id}/events"},
+  "calendar-ics-subscribe": {method:"POST",path:"/v1/public/calendars/{calendar_id}/subscriptions",sideEffect:true},
+  "calendar-notification-preferences": {method:"PATCH",path:"/v1/calendars/{calendar_id}/notification-preferences",sideEffect:true},
   "booking": {unavailable:"Missing canonical reservation/booking API"},
   "availability": {unavailable:"Missing canonical resource/slot API"},
   "workflow-run": {unavailable:"Landing-only preview is not a public Engine API"},
@@ -38,7 +46,7 @@ export async function invokeWidget(client,kind,input={},options={}){
   let path=op.path;
   for(const m of op.path.matchAll(/\{(\w+)\}/g)){
     const value=input[m[1]];
-    if(typeof value!=="string"||!/^[a-zA-Z0-9_-]{1,128}$/.test(value))throw new TypeError("Invalid widget path parameter");
+    if(typeof value!=="string"||(["calendar_id","event_id","workspace_id"].includes(m[1])?!/^[A-Za-z][A-Za-z0-9_.:-]{3,159}$/.test(value):!/^[a-zA-Z0-9_-]{1,128}$/.test(value)))throw new TypeError("Invalid widget path parameter");
     path=path.replace(m[0],encodeURIComponent(value));
   }
   const payload=Object.fromEntries(Object.entries(input).filter(([k])=>!op.path.includes("{"+k+"}")));
@@ -46,6 +54,7 @@ export async function invokeWidget(client,kind,input={},options={}){
   if(op.method==="GET")optionsOut.query=payload;else optionsOut.body=payload;
   if(options.idempotencyKey)optionsOut.idempotencyKey=options.idempotencyKey;
   if(options.signal)optionsOut.signal=options.signal;
+  if(options.workspaceId)optionsOut.workspaceId=options.workspaceId;
   return client.request(op.method,path,optionsOut);
 }
 function json(status,payload){
@@ -82,7 +91,7 @@ export function createWidgetGateway({clientForTenant,client,singleTenant=false,a
     try{
       const scopedClient=typeof clientForTenant==="function"?await clientForTenant(actor.tenantId,actor):client;
       if(!scopedClient||typeof scopedClient.request!=="function")return json(403,{code:"tenant_not_provisioned"});
-      const r=await invokeWidget(scopedClient,value.widget,value.input,{idempotencyKey:key});
+      const r=await invokeWidget(scopedClient,value.widget,value.input,{idempotencyKey:key,workspaceId:actor.workspaceId});
       return json(200,{data:r.data,status:r.status,requestId:r.requestId,rateLimit:r.rateLimit});
     }catch(e){
       const status=Number.isInteger(e.status)&&e.status>=400&&e.status<=599?e.status:502;

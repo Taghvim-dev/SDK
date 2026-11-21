@@ -42,7 +42,7 @@ export class TaghvimClient {
       throw new TypeError("Insecure API base URLs are only supported for local development");
     this.base = base.toString().replace(/\/$/, "");
   }
-  async request(method, path, { body, query, idempotencyKey, signal, auth = true } = {}) {
+  async request(method, path, { body, query, idempotencyKey, signal, auth = true, workspaceId } = {}) {
     if (auth && !this.apiKey) throw new TypeError("An API key is required for this operation");
     if (!/^(GET|POST|PATCH|DELETE)$/.test(method) || typeof path !== "string" || !path.startsWith("/") || path.startsWith("//") ||
       path.includes("?") || path.includes("#") || path.includes(".."))
@@ -57,6 +57,11 @@ export class TaghvimClient {
     if (auth) headers.authorization = "Bearer " + this.apiKey;
     if (body !== undefined) headers["content-type"] = "application/json";
     if (idempotencyKey) headers["idempotency-key"] = idempotencyKey;
+    if (workspaceId !== undefined) {
+      if (typeof workspaceId !== "string" || !/^[A-Za-z][A-Za-z0-9_:-]{3,127}$/.test(workspaceId))
+        throw new TypeError("Invalid Taghvim Workspace selector");
+      headers["Taghvim-Workspace-Id"] = workspaceId;
+    }
     const response = await this.fetcher(url.toString(), {
       method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal,
     });
@@ -99,6 +104,34 @@ export class TaghvimClient {
   createWebhook(body, options) { return this.request("POST", "/v1/webhooks", { ...options, body }); }
   webhookDeliveries(id, options) { return this.request("GET", "/v1/webhooks/" + encodePart(id) + "/deliveries", options); }
   getCurrentWorkspace(options) { return this.request("GET", "/v1/workspaces/current", options); }
+  createWorkspace(body,options={}) {
+    if(!options.idempotencyKey)throw new TypeError("Workspace creation requires an Idempotency-Key");
+    return this.request("POST","/v1/workspaces",{...options,body});
+  }
+  getWorkspace(id,options) {return this.request("GET","/v1/workspaces/"+encodePart(id),options);}
+  createCalendarEvent(calendarId,body,options={}) {
+    if(!options.idempotencyKey)throw new TypeError("Event creation requires an Idempotency-Key");
+    return this.request("POST","/v1/calendars/"+encodePart(calendarId)+"/events",{...options,body});
+  }
+  updateCalendarEvent(calendarId,eventId,body,options={}) {
+    if(!options.idempotencyKey)throw new TypeError("Event update requires an Idempotency-Key");
+    return this.request("PATCH","/v1/calendars/"+encodePart(calendarId)+"/events/"+encodePart(eventId),{...options,body});
+  }
+  listCalendarEvents(calendarId,options) {return this.request("GET","/v1/calendars/"+encodePart(calendarId)+"/events",options);}
+  listPublicCalendarEvents(calendarId,options) {
+    return this.request("GET","/v1/public/calendars/"+encodePart(calendarId)+"/events",
+      {...options,auth:false,workspaceId:undefined});
+  }
+  subscribeCalendar(calendarId,options={}) {
+    if(!options.idempotencyKey)throw new TypeError("Subscription requires an Idempotency-Key");
+    return this.request("POST","/v1/public/calendars/"+encodePart(calendarId)+"/subscriptions",
+      {...options,body:{channel:"ics"}});
+  }
+  setCalendarNotificationPreferences(calendarId,body,options={}) {
+    if(!options.idempotencyKey)throw new TypeError("Preference update requires an Idempotency-Key");
+    return this.request("PATCH","/v1/calendars/"+encodePart(calendarId)+"/notification-preferences",
+      {...options,body});
+  }
   createCalendar(graph, options={}) {
     if (!options.idempotencyKey) throw new TypeError("Calendar creation requires an Idempotency-Key");
     return this.request("POST","/v1/calendars",{...options,body:graph});
