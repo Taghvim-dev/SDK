@@ -81,3 +81,21 @@ test("gateway never allows a shared key or unverified tenant to cross ownership 
   assert.equal((await good.json()).requestId,"req_isolated");
   assert.deepEqual(mapped,["tenant_valid"]);
 });
+
+test("eight new GA widgets delegate to exact canonical SDK routes and scoped gateway",async()=>{
+ const kinds=["workspace-create","workspace-read","calendar-event-create","calendar-event-update",
+  "calendar-event-list","public-calendar-events","calendar-ics-subscribe",
+  "calendar-notification-preferences"];
+ for(const kind of kinds)assert.ok(routes.has(WIDGET_OPERATIONS[kind].method+" "+WIDGET_OPERATIONS[kind].path),kind);
+ let seen;const client={request:async(...args)=>{seen=args;return {data:{ok:true},status:200,requestId:"req_widget_ga",rateLimit:"42"};}};
+ await invokeWidget(client,"calendar-event-update",{
+   calendar_id:"cal_t0_2026",event_id:"event_customer_001",expected_version:2,
+   entity:{id:"event_customer_001"},occurrences:[]
+  },{idempotencyKey:"ga-event-widget-20261121",workspaceId:"ws_customer_2026"});
+ assert.equal(seen[0],"PATCH");
+ assert.equal(seen[1],"/v1/calendars/cal_t0_2026/events/event_customer_001");
+ assert.equal(seen[2].workspaceId,"ws_customer_2026");
+ await invokeWidget(client,"public-calendar-events",{calendar_id:"cal_t0_2026"});
+ assert.equal(seen[2].auth,false,"public-safe event read must never require raw API key");
+ await assert.rejects(invokeWidget(client,"calendar-ics-subscribe",{calendar_id:"cal_t0_2026"}),/Idempotency/);
+});

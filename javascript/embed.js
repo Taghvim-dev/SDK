@@ -19,7 +19,15 @@ export const WIDGET_INPUTS = Object.freeze({
   "reminder-preview": [{name:"due",label:"سررسید",value:"1405-08-20"},{name:"time",label:"ساعت",value:"09:00"},{name:"offsets",label:"فواصل JSON",value:'[{"n":7,"unit":"calendar"},{"n":3,"unit":"business"},{"n":0,"unit":"calendar"}]',type:"json"}],
   "recurrence-builder": [{name:"rule",label:"قاعده",value:"last-business"},{name:"from",label:"شروع",value:"1405-07-01"},{name:"count",label:"تعداد",value:"4",type:"integer"}],
   "agent-schedule-preview": [{name:"rule",label:"قاعده",value:"every-business"},{name:"from",label:"شروع",value:"1405-07-01"},{name:"count",label:"تعداد",value:"4",type:"integer"}],
-  "webhook-test": [{name:"id",label:"شناسهٔ وب‌هوک",value:"",type:"text"}]
+  "webhook-test": [{name:"id",label:"شناسهٔ وب‌هوک",value:"",type:"text"}],
+  "workspace-create": [{"name":"kind","label":"نوع فضای کاری","value":"partner"}],
+  "workspace-read": [{"name":"workspace_id","label":"شناسهٔ فضای کاری","value":"ws_0123456789ABCDEF"}],
+  "calendar-event-create": [{"name":"calendar_id","label":"شناسهٔ تقویم","value":"cal_example_2026"},{"name":"expected_version","label":"نسخهٔ تقویم","value":1,"type":"integer"},{"name":"entity","label":"رویداد (JSON)","value":"{\"id\":\"event_public_0001\",\"kind\":\"event\",\"namespace\":\"taghvim://YOUR_TENANT\",\"status\":\"active\",\"visibility\":\"public\",\"labels\":{\"fa\":\"رویداد\"}}","type":"json"},{"name":"occurrences","label":"نوبت‌ها (JSON)","value":"[{\"id\":\"occ_example_00001\",\"event_id\":\"event_public_0001\",\"starts_at\":\"2026-12-01T10:00:00.000Z\",\"ends_at\":\"2026-12-01T11:00:00.000Z\",\"timezone\":\"Asia/Tehran\",\"calendar_system\":\"jalali\",\"temporal_policy_ref\":\"urn:taghvim:policy:workspace\"}]","type":"json"}],
+  "calendar-event-update": [{"name":"calendar_id","label":"شناسهٔ تقویم","value":"cal_example_2026"},{"name":"event_id","label":"شناسهٔ رویداد","value":"event_public_0001"},{"name":"expected_version","label":"نسخهٔ مورد انتظار","value":2,"type":"integer"},{"name":"entity","label":"رویداد ویرایش‌شده (JSON)","value":"{\"id\":\"event_public_0001\",\"kind\":\"event\",\"namespace\":\"taghvim://YOUR_TENANT\",\"status\":\"active\",\"visibility\":\"public\",\"labels\":{\"fa\":\"رویداد ویرایش‌شده\"}}","type":"json"},{"name":"occurrences","label":"نوبت‌های جایگزین (JSON)","value":"[{\"id\":\"occ_example_00001\",\"event_id\":\"event_public_0001\",\"starts_at\":\"2026-12-01T10:00:00.000Z\",\"ends_at\":\"2026-12-01T11:00:00.000Z\",\"timezone\":\"Asia/Tehran\",\"calendar_system\":\"jalali\",\"temporal_policy_ref\":\"urn:taghvim:policy:workspace\"}]","type":"json"}],
+  "calendar-event-list": [{"name":"calendar_id","label":"شناسهٔ تقویم","value":"cal_example_2026"}],
+  "public-calendar-events": [{"name":"calendar_id","label":"شناسهٔ تقویم عمومی","value":"cal_example_2026"}],
+  "calendar-ics-subscribe": [{"name":"calendar_id","label":"شناسهٔ تقویم عمومی","value":"cal_example_2026"},{"name":"channel","label":"نوع اشتراک","value":"ics"}],
+  "calendar-notification-preferences": [{"name":"calendar_id","label":"شناسهٔ تقویم","value":"cal_example_2026"},{"name":"expected_version","label":"نسخهٔ قبلی (۰ برای اولین ثبت)","value":0,"type":"integer"},{"name":"enabled","label":"فعال بودن اعلان","value":"false","type":"boolean"},{"name":"channels","label":"کانال‌های مجاز (JSON)","value":"[]","type":"json"}]
 });
 function labelOf(s){return String(s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));}
 function parseField(input,spec){
@@ -28,6 +36,11 @@ function parseField(input,spec){
   if(spec.type==="integer"){
     if(!/^-?(0|[1-9]\d*)$/.test(v)||!Number.isSafeInteger(Number(v)))throw new TypeError("عدد معتبر لازم است.");
     return Number(v);
+  }
+  if(spec.type==="boolean"){
+    if(v==="true")return true;
+    if(v==="false")return false;
+    throw new TypeError("برای این گزینه فقط true یا false مجاز است.");
   }
   if(spec.type==="json"){
     const j=JSON.parse(v);

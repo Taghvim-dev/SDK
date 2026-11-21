@@ -110,3 +110,21 @@ test("lost side-effect response retains idempotency key and edited fields after 
  assert.equal(keys[0],keys[1],"Same payload must use the same retry key");
  assert.equal(el.attrs["data-api-state"],"succeeded");
 });
+
+test("eight GA widgets expose typed accessible fields bound to canonical operations",()=>{
+  const required=["workspace-create","workspace-read","calendar-event-create","calendar-event-update",
+    "calendar-event-list","public-calendar-events","calendar-ics-subscribe",
+    "calendar-notification-preferences"];
+  for(const kind of required){
+    assert.ok(WIDGET_OPERATIONS[kind]&&!WIDGET_OPERATIONS[kind].unavailable,kind);
+    assert.ok(WIDGET_INPUTS[kind]?.length>0,kind);
+    const names=new Set(WIDGET_INPUTS[kind].map(field=>field.name));
+    const pathParams=[...WIDGET_OPERATIONS[kind].path.matchAll(/\{([a-z_]+)\}/g)];
+    for(const [_,name] of pathParams)assert.ok(names.has(name),kind+" missing "+name);
+    assert.ok(WIDGET_INPUTS[kind].every(f=>typeof f.label==="string"&&f.label.length>0));
+  }
+  const notification=WIDGET_INPUTS["calendar-notification-preferences"];
+  assert.equal(notification.find(f=>f.name==="enabled").type,"boolean");
+  assert.equal(notification.find(f=>f.name==="channels").type,"json");
+  assert.equal(WIDGET_INPUTS["calendar-ics-subscribe"].find(f=>f.name==="channel").value,"ics");
+});
