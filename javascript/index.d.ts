@@ -44,5 +44,8 @@ export class TaghvimClient {
  publicCalendar(id:string,options?:RequestOptions):Promise<ApiResponse>;
  publicCalendarIcs(id:string,options?:RequestOptions):Promise<ApiResponse<string>>;
  searchPublicCalendarEvents(query?:Record<string,string|number|undefined>,options?:RequestOptions):Promise<ApiResponse>;
+ /** Request-only admission: Platform Superadmin approval is mandatory before any public activation. */
+ requestHandle(body:{handle:string;kind:"calendar";calendar_id:string;purpose:string},options:RequestOptions & {idempotencyKey:string}):Promise<ApiResponse<{request_id:string;handle:string;status:"pending";version:number;approval:string}>>;
+ discoverHandles(query?:{q?:string;kind?:"calendar";tag?:string;limit?:number},options?:RequestOptions):Promise<ApiResponse<{data:Array<{handle:string;kind:"calendar";calendar_id:string;labels:Record<string,string>;tags:string[];version:number}>;count:number}>>;
 }
 export function createTestClient(options:{apiKey:string;baseUrl?:string;fetch?:typeof fetch}):TaghvimClient;

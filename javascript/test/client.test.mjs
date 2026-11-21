@@ -129,3 +129,35 @@ test("native Window-like fetch receiver is preserved by default JavaScript SDK t
   assert.equal(called,1);
  }finally{globalThis.fetch=original}
 });
+
+test("T0 Handle approval request uses one scoped metered API path; discovery is anonymous",async()=>{
+ const seen=[];
+ const fetcher=async(url,opts)=>{
+  seen.push({url,opts});
+  const body=new URL(url).pathname==="/v1/public/handles"?
+    {data:[],count:0}:{request_id:"hdlreq_test",handle:"@campusmusic",
+      kind:"calendar",status:"pending",version:1,created_at:"2026-11-21T00:00:00Z",
+      approval:"platform_superadmin_required"};
+  return new Response(JSON.stringify(body),{status:body.status?202:200,
+    headers:{"content-type":"application/json","Taghvim-Request-Id":"req_handle_sdk"}});
+ };
+ const owner=createTestClient({apiKey:key,fetch:fetcher});
+ assert.throws(()=>owner.requestHandle({handle:"@campusmusic"}),/Idempotency/);
+ const opts={workspaceId:"wsp_customer_01",idempotencyKey:"sdk-handle-request-20261121"};
+ const req={handle:"@campusmusic",kind:"calendar",calendar_id:"cal_music_school_1",
+   purpose:"Calendar publisher public handle request"};
+ const applied=await owner.requestHandle(req,opts);
+ assert.equal(applied.status,202);
+ assert.equal(applied.data.status,"pending");
+ assert.equal(seen[0].opts.headers.authorization,"Bearer "+key);
+ assert.equal(seen[0].opts.headers["Taghvim-Workspace-Id"],opts.workspaceId);
+ assert.equal(seen[0].opts.headers["idempotency-key"],opts.idempotencyKey);
+ assert.deepEqual(JSON.parse(seen[0].opts.body),req);
+ const discovered=await owner.discoverHandles({q:"campus",tag:"concert",limit:10});
+ assert.equal(discovered.data.count,0);
+ assert.equal(seen[1].opts.headers.authorization,undefined);
+ assert.match(seen[1].url,/\/v1\/public\/handles\?q=campus&tag=concert&limit=10/);
+ const paths=new Set(contract.operations.map(o=>o.method+" "+o.path));
+ assert.ok(paths.has("POST /v1/handles/requests"));
+ assert.ok(paths.has("GET /v1/public/handles"));
+});

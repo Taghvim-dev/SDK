@@ -166,3 +166,14 @@ class TaghvimClient:
 
     def search_public_calendar_events(self, query=None):
         return self.call("GET", "/v1/public/calendar-search", query=query or {}, auth=False)
+
+    def request_handle(self, body, idempotency_key, workspace_id=None):
+        """Request review; does not activate, reserve, or publish a handle."""
+        if not isinstance(body, dict):
+            raise ValueError("Handle request must be an object")
+        return self.call("POST", "/v1/handles/requests", body,
+                         self._mutation_key(idempotency_key), workspace_id=workspace_id)
+
+    def discover_handles(self, query=None):
+        """Only currently published and approved public handles are searchable."""
+        return self.call("GET", "/v1/public/handles", query=query or {}, auth=False)
