@@ -99,3 +99,24 @@ test("eight new GA widgets delegate to exact canonical SDK routes and scoped gat
  assert.equal(seen[2].auth,false,"public-safe event read must never require raw API key");
  await assert.rejects(invokeWidget(client,"calendar-ics-subscribe",{calendar_id:"cal_t0_2026"}),/Idempotency/);
 });
+
+test("default browser widget client preserves native Window-like fetch receiver",async()=>{
+ const original=globalThis.fetch;
+ let calls=0;
+ try{
+  globalThis.fetch=function(url,options){
+   assert.equal(this,globalThis,"native browser fetch must receive Window as its receiver");
+   assert.equal(url,"/__taghvim/widgets");
+   assert.equal(options.credentials,"same-origin");
+   assert.equal(options.headers.authorization,undefined);
+   calls++;
+   return Promise.resolve(new Response(JSON.stringify({requestId:"req_widget_receiver",status:200}),{
+    status:200,headers:{"content-type":"application/json"}
+   }));
+  };
+  const browser=createBrowserWidgetClient();
+  const result=await browser.invoke("date-picker",{date:"1405-07-15"});
+  assert.equal(result.requestId,"req_widget_receiver");
+  assert.equal(calls,1);
+ }finally{globalThis.fetch=original}
+});

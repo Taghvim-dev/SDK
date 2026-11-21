@@ -103,7 +103,7 @@ export function createWidgetGateway({clientForTenant,client,singleTenant=false,a
   };
 }
 /** Browser SDK sends only widget inputs via the embedding application's own origin. */
-export function createBrowserWidgetClient({endpoint="/__taghvim/widgets",fetch:fetcher=globalThis.fetch}={}){
+export function createBrowserWidgetClient({endpoint="/__taghvim/widgets",fetch:fetcher=(...args)=>globalThis.fetch(...args)}={}){
   if(typeof endpoint!=="string"||!/^\/(?!\/)[a-zA-Z0-9/_-]+$/.test(endpoint)||endpoint.includes("..")||typeof fetcher!=="function")
     throw new TypeError("Expected same-origin widget endpoint and fetch");
   return Object.freeze({async invoke(widget,input={},options={}){

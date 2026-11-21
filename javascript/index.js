@@ -29,7 +29,7 @@ function validateKey(key, mode) {
 }
 function encodePart(part) { return encodeURIComponent(String(part)); }
 export class TaghvimClient {
-  constructor({ apiKey, baseUrl = DEFAULT_BASE, fetch: fetcher = globalThis.fetch, mode = "test" } = {}) {
+  constructor({ apiKey, baseUrl = DEFAULT_BASE, fetch: fetcher = (...args) => globalThis.fetch(...args), mode = "test" } = {}) {
     if (mode !== "test" && mode !== "live") throw new TypeError("mode must be test or live");
     this.apiKey = validateKey(apiKey, mode);
     this.mode = mode;

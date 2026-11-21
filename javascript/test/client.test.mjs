@@ -108,3 +108,24 @@ test("T0 universal GA operation adapters share exact SDK contract, authz workspa
  assert.throws(()=>client.createCalendarEvent("cal_university_123",{},{}),/Idempotency/);
  await assert.rejects(client.createWorkspace({kind:"partner"},{idempotencyKey:idem.idempotencyKey,workspaceId:"../invalid"}),/Workspace/);
 });
+
+test("native Window-like fetch receiver is preserved by default JavaScript SDK transport",async()=>{
+ const original=globalThis.fetch;
+ let called=0;
+ try{
+  globalThis.fetch=function(url,options){
+   assert.equal(this,globalThis,"native fetch requires the window/global receiver");
+   called++;
+   assert.equal(new URL(url).pathname,"/v1/me");
+   assert.equal(options.headers.authorization,"Bearer "+key);
+   return Promise.resolve(new Response(JSON.stringify({tenant:{id:"ten_receiver"}}),{
+    status:200,headers:{"content-type":"application/json","Taghvim-Request-Id":"req_brandcheck"}
+   }));
+  };
+  const sdk=createTestClient({apiKey:key});
+  const response=await sdk.me();
+  assert.equal(response.status,200);
+  assert.equal(response.requestId,"req_brandcheck");
+  assert.equal(called,1);
+ }finally{globalThis.fetch=original}
+});
