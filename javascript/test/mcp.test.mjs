@@ -116,3 +116,59 @@ test("semantic reconciliation and date calculations are effect-free MCP POST too
  assert.equal(invalid.error.code,-32602);
  assert.equal(calls.length,1);
 });
+
+test("MCP stdio processes cancellation before an in-flight upstream request completes",async()=>{
+ const input=new PassThrough(),output=new PassThrough();let result="",started;
+ let abortSeen=false,seenSignal;
+ const active=new Promise(resolve=>started=resolve);
+ const client={request:async(method,path,opts)=>{
+  seenSignal=opts.signal;started();
+  return new Promise((resolve,reject)=>{
+   opts.signal.addEventListener("abort",()=>{
+    abortSeen=true;reject(Object.assign(new Error("aborted"),{name:"AbortError"}));
+   },{once:true});
+  });
+ }};
+ output.on("data",data=>result+=data.toString());
+ const stream=serveMcpStdio(createTaghvimMcpBridge({client}),{input,output});
+ input.write(JSON.stringify(req(70,"tools/call",{name:"taghvim_getWorkspace",arguments:{path:{workspace_id:"ws_live"}}}))+"\n");
+ await active;
+ input.write(JSON.stringify({jsonrpc:"2.0",method:"notifications/cancelled",params:{
+  requestId:70,_meta:META
+ }})+"\n");
+ input.write(JSON.stringify(req(71,"server/discover"))+"\n");
+ input.end();
+ await stream;
+ const messages=result.trim().split("\n").filter(Boolean).map(JSON.parse);
+ assert.equal(abortSeen,true,"SDK fetch must receive an abort event");
+ assert.equal(seenSignal?.aborted,true);
+ assert.equal(messages.some(x=>x.id===70),false,"cancelled request must never return a stale response");
+ assert.equal(messages.some(x=>x.id===71&&x.result?.resultType==="complete"),true,
+  "discovery must not wait for a cancelled upstream request");
+});
+test("MCP stdio validates cancellation IDs/protocol, and rejects duplicate in-flight work",async()=>{
+ const input=new PassThrough(),output=new PassThrough(),out=[];
+ output.on("data",x=>out.push(...x.toString().trim().split("\n").filter(Boolean).map(JSON.parse)));
+ let started,resolveUpstream,called=0;
+ const active=new Promise(res=>started=res);
+ const client={request:async()=>{
+  called++;started();
+  return new Promise(res=>resolveUpstream=res);
+ }};
+ const stream=serveMcpStdio(createTaghvimMcpBridge({client}),{input,output});
+ input.write(JSON.stringify(req("same","tools/call",{name:"taghvim_getWorkspace",arguments:{path:{workspace_id:"ws_live"}}}))+"\n");
+ await active;
+ input.write(JSON.stringify(req("same","server/discover"))+"\n");
+ input.write(JSON.stringify({jsonrpc:"2.0",method:"notifications/cancelled",params:{
+  requestId:"same",_meta:{"io.modelcontextprotocol/protocolVersion":"2025-11-25"}
+ }})+"\n");
+ input.write(JSON.stringify(req(78,"tools/list"))+"\n");
+ resolveUpstream({status:200,requestId:"req_mcp",data:{ok:true}});
+ input.end();
+ await stream;
+ assert.equal(called,1,"duplicate id must not start a second upstream operation");
+ assert.ok(out.some(x=>x.id==="same"&&x.error?.code===-32600));
+ assert.ok(out.some(x=>x.id==="same"&&x.result?.isError===false),
+  "wrong-version cancellation must not discard the valid response");
+ assert.ok(out.some(x=>x.id===78&&x.result?.tools?.length));
+});

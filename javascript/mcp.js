@@ -110,7 +110,7 @@ export function createTaghvimMcpBridge({client,writeEnabled=false,operationIndex
  const names=[...lookup.keys()].sort();
  if(names.length!==ALLOWED.size)throw new TypeError("Missing canonical MCP operation: block catalog");
  const tools=Object.freeze(names.filter(n=>writeEnabled||effectFree(lookup.get(n))).map(n=>status(n,lookup.get(n))));
- async function handle(req){
+ async function handle(req,{signal}={}){
   const id=req?.id??null;
   if(!isObject(req)||req.jsonrpc!=="2.0"||typeof req.method!=="string"||
      (req.id!==undefined&&typeof req.id!=="string"&&typeof req.id!=="number"))
@@ -134,7 +134,7 @@ export function createTaghvimMcpBridge({client,writeEnabled=false,operationIndex
   try{validated=validateArgs(req.params.arguments??{},op,writeEnabled);}
   catch{return rpcError(id,-32602,"Invalid or unauthorized tool arguments");}
   try{
-   const out=await client.request(op.method,validated.path,validated.options);
+   const out=await client.request(op.method,validated.path,signal?{...validated.options,signal}:validated.options);
    // Return caller-visible API data only; never attach credentials, environment or session secrets.
    return{jsonrpc:"2.0",id,result:complete({isError:false,
     content:[{type:"text",text:JSON.stringify({status:out.status,request_id:out.requestId,data:out.data})}]})};
@@ -150,13 +150,70 @@ export function createTaghvimMcpBridge({client,writeEnabled=false,operationIndex
 export async function serveMcpStdio(bridge,{input=process.stdin,output=process.stdout}={}){
  if(typeof bridge?.handle!=="function")throw new TypeError("MCP bridge required");
  const lines=createInterface({input,crlfDelay:Infinity,terminal:false});
+ // Source of truth for all concurrent JSON-RPC requests. A cancellation is
+ // admitted BEFORE any awaiting of the upstream SDK HTTP call. Never serialize
+ // stdin processing behind a network operation or let a cancelled reply escape.
+ const inflight=new Map(),running=new Set();
+ const requestKey=id=>typeof id+":"+String(id);
+ const write=result=>{
+  if(result!==null&&result!==undefined)output.write(JSON.stringify(result)+"\n");
+ };
  for await(const line of lines){
-  let answer;
-  try{
-   if(Buffer.byteLength(line,"utf8")>1024*1024)answer=rpcError(null,-32700,"Message too large");
-   else answer=await bridge.handle(JSON.parse(line));
-  }catch{answer=rpcError(null,-32700,"Invalid JSON");}
-  if(answer!==null&&answer!==undefined)output.write(JSON.stringify(answer)+"\n");
+  if(Buffer.byteLength(line,"utf8")>1024*1024){
+   write(rpcError(null,-32700,"Message too large"));continue;
+  }
+  let req;
+  try{req=JSON.parse(line);}
+  catch{write(rpcError(null,-32700,"Invalid JSON"));continue;}
+  // Cancellation is a notification, not a second JSON-RPC request; the exact
+  // client protocol version and original request ID must be supplied.
+  if(isObject(req)&&req.jsonrpc==="2.0"&&req.method==="notifications/cancelled"&&
+     req.id===undefined&&isObject(req.params)&&
+     req.params._meta?.[META+"protocolVersion"]===MCP_VERSION){
+   const target=req.params.requestId;
+   if((typeof target==="string"||typeof target==="number")&&target!==null){
+    const pending=inflight.get(requestKey(target));
+    if(pending){pending.cancelled=true;pending.controller.abort();}
+   }
+   continue;
+  }
+  // Notifications never carry a response; reject malformed RPC only when a
+  // response identifier was actually supplied.
+  if(isObject(req)&&req.id===undefined)continue;
+  const id=req?.id;
+  const identifiable=typeof id==="string"||typeof id==="number";
+  const key=identifiable?requestKey(id):null;
+  if(key&&inflight.has(key)){
+   write(rpcError(id,-32600,"Duplicate in-flight request ID"));continue;
+  }
+  if(inflight.size>=32){
+   write(rpcError(identifiable?id:null,-32000,"Maximum concurrent MCP requests exceeded"));continue;
+  }
+  const controller=new AbortController(),task={controller,cancelled:false,promise:null};
+  if(key)inflight.set(key,task);
+  // The synchronous task registration above must precede scheduling the
+  // Promise: a cancellation on the very next line cannot race past the map.
+  const done=Promise.resolve().then(()=>bridge.handle(req,{signal:controller.signal}))
+   .then(answer=>{if(!task.cancelled)write(answer);},
+     ()=>{if(!task.cancelled)write(rpcError(identifiable?id:null,-32603,"MCP upstream request failed"));})
+   .finally(()=>{
+    if(key&&inflight.get(key)===task)inflight.delete(key);
+    running.delete(done);
+   });
+  task.promise=done;running.add(done);
+ }
+ // End-of-stream is a bounded close, not a license for a stuck SDK request to
+ // hold the MCP process forever. Abort and suppress outstanding responses.
+ // Give already-settled requests one turn to flush normally first.
+ await Promise.resolve();
+ const pending=[...running];
+ if(pending.length){
+  const settled=Promise.allSettled(pending);
+  const expired=await Promise.race([settled.then(()=>false),
+   new Promise(resolve=>{const timer=setTimeout(()=>resolve(true),300);/* bounded EOF drain; timer remains live */})]);
+  if(expired){
+   for(const entry of inflight.values()){entry.cancelled=true;entry.controller.abort();}
+  }
  }
 }
 export function mcpFromEnvironment(env=process.env){
