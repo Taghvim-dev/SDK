@@ -1,11 +1,47 @@
 #!/bin/sh
-# T0 deterministic pre-effect gate for developer and agent local git pushes.
+# Taghvim T0 pre-effect admission, source-identical in Engine/Landing/SDK/CLI/Cookbooks.
+# Git supplies the actual refs to be pushed on stdin. Never validate another checkout.
 set -eu
 root="$(git rev-parse --show-toplevel)"
 cd "$root"
-if [ -n "$(git status --porcelain)" ]; then
-  echo "T0_PRE_PUSH_BLOCKED: commit and reconcile the full worktree first" >&2
-  exit 1
-fi
-git diff --check HEAD
-npm run t0:preflight
+die() { printf '%s\n' "T0_PRE_PUSH_BLOCKED: $*" >&2; exit 1; }
+
+# No uncommitted code or staged side-effects may alter the tested Git tree.
+[ -z "$(git status --porcelain)" ] || die 'commit and reconcile the full worktree first'
+head="$(git rev-parse --verify 'HEAD^{commit}')" || die 'missing HEAD commit'
+case "$head" in
+  *[!0-9a-f]*|'') die 'invalid HEAD sha' ;;
+esac
+[ "${#head}" -eq 40 ] || die 'invalid HEAD length'
+
+refs="$(mktemp "${TMPDIR:-/tmp}/taghvim-t0-prepush.XXXXXXXX")" || die 'cannot allocate ref manifest'
+trap 'rm -f "$refs"' 0
+trap 'exit 1' 1 2 3 15
+cat > "$refs" || die 'cannot read push ref manifest'
+[ -s "$refs" ] || die 'no concrete outgoing ref updates to authorize'
+
+verify_refs() {
+  seen=0
+  while read -r local_ref local_sha remote_ref remote_sha extra; do
+    seen=$((seen + 1))
+    [ -n "${local_ref:-}" ] && [ -n "${local_sha:-}" ] && [ -n "${remote_ref:-}" ] && [ -n "${remote_sha:-}" ] && [ -z "${extra:-}" ] || die 'malformed outgoing ref update'
+    case "$remote_ref" in refs/heads/*) ;; *) die "non-branch mutation denied: $remote_ref" ;; esac
+    # Includes --all, --mirror, explicit refspecs, detached SHA, tag and delete pushes.
+    [ "$local_sha" = "$head" ] || die "outgoing commit differs from tested HEAD: $remote_ref"
+    resolved="$(git rev-parse --verify "${local_ref}^{commit}" 2>/dev/null)" || die "unresolvable outgoing ref: $local_ref"
+    [ "$resolved" = "$head" ] || die "ref moved or is not the validated HEAD: $local_ref"
+    case "$remote_sha" in
+      *[!0-9a-f]*|'') die 'invalid remote SHA' ;;
+    esac
+    [ "${#remote_sha}" -eq 40 ] || die 'invalid remote SHA length'
+  done < "$refs"
+  [ "$seen" -gt 0 ] || die 'no eligible branch updates'
+}
+verify_refs
+git diff --check HEAD || die 'worktree conflict markers or whitespace defects'
+npm run t0:preflight || die 'canonical source/contract/CI preflight failed'
+# Recheck after potentially long builds and scripts: reject races/mutating preflights.
+[ -z "$(git status --porcelain)" ] || die 'preflight mutated worktree'
+[ "$(git rev-parse --verify 'HEAD^{commit}')" = "$head" ] || die 'HEAD changed during preflight'
+verify_refs
+printf '%s\n' "T0_PRE_PUSH_ADMITTED exact_sha=$head (all outgoing refs validated)"
