@@ -170,7 +170,7 @@ export class TaghvimClient {
   financeBusinessDays(body,options) { return this.request("POST","/v1/finance/business-days/quote",{...options,body}); }
   /** Explicit market and year; public holidays are not settlement-grade. */
   financeHolidays({market,year},options) {
-    if(typeof market!=="string"||!/^[A-Z]{2}(?:-[A-Z0-9]{2,4})?$/.test(market)||
+    if(typeof market!=="string"||!/^[A-Z]{2}(?:-[A-Z0-9]{1,4})?$/.test(market)||
        !Number.isInteger(year)||year<2020||year>2035)
       throw new TypeError("An ISO market and a valid holiday year are required");
     return this.request("GET","/v1/finance/holidays",{...options,query:{market,year}});
