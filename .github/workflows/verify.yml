@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   validate:
-    if: ${{ false }} # T0 hard-stop until explicit budget authorization and new reviewed commit
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.actor == '007dude' && startsWith(github.event.head_commit.message, 't0: certify public SDK source cohort 20261122') }} # Exact owner-authored one-shot main source verification; no automatic recurring spend
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
