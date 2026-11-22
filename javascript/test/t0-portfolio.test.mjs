@@ -5,7 +5,7 @@ import {createTestClient} from "../index.js";
 
 const contract=JSON.parse(readFileSync(new URL("../../contracts/operation-index.json",import.meta.url),"utf8"));
 test("T0 portfolio SDK source is pinned to the Engine canonical one-operation diff",()=>{
- assert.equal(contract.openApiGitBlobSHA,"4c2dda8aebad45ca210238f91fa680712f2fb812");
+ assert.equal(contract.openApiGitBlobSHA,"ec967032f7bfcd39b82f5a8a112690c277677fcb");
  const op=contract.operations.find(x=>x.operationId==="listCalendarPortfolio");
  assert.deepEqual(op,{method:"GET",path:"/v1/portfolios/calendars",operationId:"listCalendarPortfolio",auth:["ApiKey"]});
  assert.equal(contract.operations.filter(x=>x.operationId==="listCalendarPortfolio").length,1);

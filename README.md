@@ -93,3 +93,5 @@ Auth/RBAC/ABAC/Metering service. Python:
 `FinancialCalendarClient(api_key=...,base_url=...)`.
 The branded facade never creates keys, routes around the platform meter,
 certifies lunar announcements or initiates payments.
+
+The worldwide rules response now distinguishes `candidate_preview` from true `available_preview`. The pinned source `_COMMON` contains informal observances; `candidate_events` are NOT public holidays, and `holiday_count=0` until independent classification. Do not feed candidate events into business-day, bank or settlement calculations. OpenAPI Git blob: `ec967032f7bfcd39b82f5a8a112690c277677fcb`.

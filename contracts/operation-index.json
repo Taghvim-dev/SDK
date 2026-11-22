@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "contractVersion": "2.1.0",
-  "openApiGitBlobSHA": "4c2dda8aebad45ca210238f91fa680712f2fb812",
+  "openApiGitBlobSHA": "ec967032f7bfcd39b82f5a8a112690c277677fcb",
   "operations": [
     {
       "method": "GET",
