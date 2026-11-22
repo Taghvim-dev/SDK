@@ -111,6 +111,16 @@ class TaghvimClient:
         """Read only explicitly authorized same-tenant calendars; scoped by the signed API key."""
         return self.call("GET", "/v1/portfolios/calendars", query=query or {}, workspace_id=workspace_id)
 
+    def list_finance_countries(self):
+        """Global ISO registry is not itself evidence of official bank holidays."""
+        return self.call("GET", "/v1/finance/countries", auth=False)
+
+    def quote_finance_business_day(self, body):
+        """Compute source-attributed preview, never a final settlement instruction."""
+        if not isinstance(body, dict):
+            raise ValueError("Financial date quote requires an object")
+        return self.call("POST", "/v1/finance/business-days/quote", body)
+
     def get_current_workspace(self):
         return self.call("GET", "/v1/workspaces/current")
 

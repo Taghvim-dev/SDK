@@ -21,6 +21,8 @@ export const WIDGET_OPERATIONS = Object.freeze({
   "public-calendar-events": {method:"GET",path:"/v1/public/calendars/{calendar_id}/events",public:true},
   "calendar-ics-subscribe": {method:"POST",path:"/v1/public/calendars/{calendar_id}/subscriptions",sideEffect:true},
   "calendar-notification-preferences": {method:"PATCH",path:"/v1/calendars/{calendar_id}/notification-preferences",sideEffect:true},
+  "finance-country-selector": {method:"GET",path:"/v1/finance/countries",public:true},
+  "finance-business-day-quote": {method:"POST",path:"/v1/finance/business-days/quote"},
   "booking": {unavailable:"Missing canonical reservation/booking API"},
   "availability": {unavailable:"Missing canonical resource/slot API"},
   "workflow-run": {unavailable:"Landing-only preview is not a public Engine API"},

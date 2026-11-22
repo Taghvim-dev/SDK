@@ -12,6 +12,17 @@ test("all claimed widget routes exist in canonical SDK OpenAPI operation index",
   }
   for(const x of ["booking","availability","workflow-run","agent-execution"])assert.ok(WIDGET_OPERATIONS[x].unavailable);
 });
+test("finance widgets use canonical SDK gateway; no money movement",async()=>{
+ assert.equal(WIDGET_OPERATIONS["finance-country-selector"].public,true);
+ assert.equal(WIDGET_OPERATIONS["finance-business-day-quote"].sideEffect,undefined);
+ let call;
+ const client={request:async (...args)=>{call=args;return {data:{status:"preview",financial_decision_allowed:false},status:200,requestId:"req_finance",rateLimit:"20"};}};
+ await invokeWidget(client,"finance-country-selector",{});
+ assert.deepEqual(call,["GET","/v1/finance/countries",{query:{},auth:false}]);
+ await invokeWidget(client,"finance-business-day-quote",{markets:["GB-EW"],date:"2026-12-24",offset_business_days:1});
+ assert.deepEqual(call,["POST","/v1/finance/business-days/quote",{body:{markets:["GB-EW"],date:"2026-12-24",offset_business_days:1}}]);
+});
+
 test("adapter invokes real SDK request, never creates a mock response",async()=>{
   let seen;
   const client={request:async(...args)=>{seen=args;return {data:{ok:true},status:200,requestId:"req_test",rateLimit:"20"};}};

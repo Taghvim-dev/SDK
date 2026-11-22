@@ -5,6 +5,20 @@ import {readFileSync} from "node:fs";
 
 const key="tgv_test_ExampleApprovedByInvitation";
 const contract=JSON.parse(readFileSync(new URL("../../contracts/operation-index.json", import.meta.url)));
+test("global Finance SDK uses public catalog and authenticated source-gated quote",async()=>{
+ const calls=[];
+ const client=new TaghvimClient({apiKey:key,fetch:async(url,options)=>{
+  calls.push({url,method:options.method,authorization:options.headers.authorization||null});
+  return new Response(JSON.stringify({status:"preview",financial_decision_allowed:false}),{status:200,headers:{"content-type":"application/json"}});
+ }});
+ await client.listFinanceCountries();
+ await client.quoteFinanceBusinessDay({markets:["GB-EW"],date:"2026-12-24",offset_business_days:1});
+ assert.equal(calls[0].url,"https://api.taghvim.dev/v1/finance/countries");
+ assert.equal(calls[0].authorization,null);
+ assert.equal(calls[1].url,"https://api.taghvim.dev/v1/finance/business-days/quote");
+ assert.equal(calls[1].authorization,"Bearer "+key);
+});
+
 test("product preview API routes belong to the pinned contract", () => {
  const allow=new Set(contract.operations.map(x=>x.method+" "+x.path));
  for(const route of ["POST /v1/dates/convert","POST /v1/business-days/add","GET /v1/holidays","POST /v1/deadlines","GET /v1/usage","GET /v1/health"]) assert.ok(allow.has(route),route);

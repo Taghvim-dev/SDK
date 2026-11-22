@@ -103,6 +103,10 @@ export class TaghvimClient {
   listWebhooks(options) { return this.request("GET", "/v1/webhooks", options); }
   createWebhook(body, options) { return this.request("POST", "/v1/webhooks", { ...options, body }); }
   webhookDeliveries(id, options) { return this.request("GET", "/v1/webhooks/" + encodePart(id) + "/deliveries", options); }
+  /** All ISO countries are discoverable, but country listings are NOT verified bank calendars. */
+  listFinanceCountries(options) { return this.request("GET","/v1/finance/countries",{...options,auth:false}); }
+  /** Safe source-attributed preview; never treat as an authorized settlement instruction. */
+  quoteFinanceBusinessDay(body,options) { return this.request("POST","/v1/finance/business-days/quote",{...options,body}); }
   getCurrentWorkspace(options) { return this.request("GET", "/v1/workspaces/current", options); }
   /** Explicitly granted same-tenant Workspaces only; never traverse inherited permissions. */
   listCalendarPortfolio(query={},options={}) {

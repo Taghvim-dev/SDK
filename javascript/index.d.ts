@@ -1,4 +1,8 @@
 /** Public preview. Requires a separately issued key and active API access. */
+/** Finance responses default-deny financial settlement until official rules are certified. */
+export type FinanceBusinessDayRequest = {markets:string[];date:string;offset_business_days:number;convention?:"following"|"preceding"|"modified_following"|"modified_preceding"|"unadjusted";rail_id?:string;cutoff_time?:string};
+export type FinanceBusinessDayResult = {status:"preview"|"verification_required"|"invalid_input";business_date:string|null;certified_for_financial_settlement:false;financial_decision_allowed:false;pack_version:string;problems?:string[];sources?:unknown[]};
+export type FinanceCountryCatalog = {status:"preview";country_count:249;countries:Array<{country:string;markets:string[];financial_grade:false;verified_holiday_calendar:false}>;non_country_markets:unknown[];warning:string};
 export interface RequestOptions { signal?: AbortSignal; idempotencyKey?: string; query?: Record<string,string|number|boolean|null|undefined>; workspaceId?: string; }
 export interface ApiResponse<T=unknown>{data:T;status:number;requestId:string|null;rateLimit:string|null;}
 export class TaghvimApiError extends Error {status:number;code:string;requestId:string|null;retryAfter:string|null;problem:Record<string,unknown>|null;}
@@ -27,6 +31,8 @@ export class TaghvimClient {
  listWebhooks(options?:RequestOptions):Promise<ApiResponse>;
  createWebhook(body:unknown,options?:RequestOptions):Promise<ApiResponse>;
  webhookDeliveries(id:string,options?:RequestOptions):Promise<ApiResponse>;
+ listFinanceCountries(options?:RequestOptions):Promise<ApiResponse<FinanceCountryCatalog>>;
+ quoteFinanceBusinessDay(body:FinanceBusinessDayRequest,options?:RequestOptions):Promise<ApiResponse<FinanceBusinessDayResult>>;
  getCurrentWorkspace(options?:RequestOptions):Promise<ApiResponse>;
  listCalendarPortfolio(query?:{scope?:"granted"|"selected";status?:"draft"|"published"|"unpublished"|"archived";sector_pack?:string;q?:string;limit?:number},options?:RequestOptions):Promise<ApiResponse<{scope:string;workspace_id:string;count:number;data:unknown[]}>>;
  createWorkspace(body:{kind:"organisation"|"partner"|"reseller"|"distributor"|"department"|"team"|"customer"|"agent"},options:RequestOptions & {idempotencyKey:string}):Promise<ApiResponse>;

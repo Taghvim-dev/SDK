@@ -4,7 +4,8 @@ export type WidgetKind =
  "business-day-badge" | "deadline-calculator" | "deadline-create" |
  "sla-calculator" | "reminder-preview" | "recurrence-builder" |
  "agent-schedule-preview" | "webhook-test" | "booking" | "availability" |
- "workflow-run" | "agent-execution" |
+ "finance-country-selector" | "finance-business-day-quote" |
+ "workflow-run" | "agent-execution" | "workflow-run" | "agent-execution" |
  "workspace-create" | "workspace-read" | "calendar-event-create" | "calendar-event-update" |
  "calendar-event-list" | "public-calendar-events" | "calendar-ics-subscribe" | "calendar-notification-preferences";
 export declare const WIDGET_OPERATIONS: Readonly<Record<WidgetKind,
