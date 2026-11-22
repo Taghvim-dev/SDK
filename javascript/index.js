@@ -104,6 +104,10 @@ export class TaghvimClient {
   createWebhook(body, options) { return this.request("POST", "/v1/webhooks", { ...options, body }); }
   webhookDeliveries(id, options) { return this.request("GET", "/v1/webhooks/" + encodePart(id) + "/deliveries", options); }
   getCurrentWorkspace(options) { return this.request("GET", "/v1/workspaces/current", options); }
+  /** Explicitly granted same-tenant Workspaces only; never traverse inherited permissions. */
+  listCalendarPortfolio(query={},options={}) {
+    return this.request("GET","/v1/portfolios/calendars",{...options,query});
+  }
   /** All governed Workspace/event/ICS capabilities reuse request()'s exact actor, key and idempotency boundary. */
   createWorkspace(body, options={}) {
     if(!options.idempotencyKey)throw new TypeError("Workspace creation requires an Idempotency-Key");

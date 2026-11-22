@@ -107,6 +107,10 @@ class TaghvimClient:
             raise ValueError("An 8-128 character Idempotency-Key is required")
         return key
 
+    def list_calendar_portfolio(self, query=None, workspace_id=None):
+        """Read only explicitly authorized same-tenant calendars; scoped by the signed API key."""
+        return self.call("GET", "/v1/portfolios/calendars", query=query or {}, workspace_id=workspace_id)
+
     def get_current_workspace(self):
         return self.call("GET", "/v1/workspaces/current")
 

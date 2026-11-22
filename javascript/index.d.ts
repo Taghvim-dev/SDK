@@ -28,6 +28,7 @@ export class TaghvimClient {
  createWebhook(body:unknown,options?:RequestOptions):Promise<ApiResponse>;
  webhookDeliveries(id:string,options?:RequestOptions):Promise<ApiResponse>;
  getCurrentWorkspace(options?:RequestOptions):Promise<ApiResponse>;
+ listCalendarPortfolio(query?:{scope?:"granted"|"selected";status?:"draft"|"published"|"unpublished"|"archived";sector_pack?:string;q?:string;limit?:number},options?:RequestOptions):Promise<ApiResponse<{scope:string;workspace_id:string;count:number;data:unknown[]}>>;
  createWorkspace(body:{kind:"organisation"|"partner"|"reseller"|"distributor"|"department"|"team"|"customer"|"agent"},options:RequestOptions & {idempotencyKey:string}):Promise<ApiResponse>;
  getWorkspace(id:string,options?:RequestOptions):Promise<ApiResponse>;
  createCalendarEvent(calendarId:string,body:{expected_version:number;entity:Record<string,unknown>;occurrences:unknown[]},options:RequestOptions & {idempotencyKey:string}):Promise<ApiResponse>;
