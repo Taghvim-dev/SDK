@@ -10,6 +10,7 @@ from urllib.parse import quote
 WIDGET_OPERATIONS = {
     "finance-countries": ("GET", "/v1/finance/countries", False),
     "finance-business-day": ("POST", "/v1/finance/business-days/quote", False),
+    "finance-public-holidays": ("GET", "/v1/finance/holidays", False),
     "date-picker": ("POST", "/v1/dates/convert", False),
     "dual-calendar-badge": ("POST", "/v1/dates/convert", False),
     "date-reconciliation": ("POST", "/v1/dates/reconcile", False),

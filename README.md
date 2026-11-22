@@ -67,3 +67,31 @@ For server-rendered widgets, call `invokeWidget(client, 'date-reconciliation', {
 
 ## Canonical institutional calendar SDK (source preview)
 The JavaScript/TypeScript and Python clients provide the same tenant-authenticated creation, optimistic version update, publish/unpublish and anonymous public calendar/ICS operations defined by the pinned Engine OpenAPI. A unique `Idempotency-Key` is required for each mutation; never put tenant API keys in browser embeds. Source parity alone does **not** certify GA or a deployed cloud Worker: the coordinated protected release must verify Engine/Sandbox D1/Production D1/SDK and public HTTP receipts at the same immutable release SHA.
+
+### Worldwide public holidays — financial preview only
+Use `TaghvimClient.financeHolidays({market:"AE",year:2026})` or Python
+`client.finance_holidays("GB-SCT",2027)`. Server keys only. The
+`finance-public-holidays` widget runs through a server-side authorized
+widget gateway. The response distinguishes GOV.UK primary government data from
+community aggregated Nager.Date v4. Lunar sightings and bank rails are not
+verified by these public-holiday sources; do not treat a preview as settlement.
+
+
+### Portable white-label Financial Calendar client (preview)
+JavaScript:
+```js
+import {createFinancialCalendarClient} from "@taghvim/sdk/finance";
+const finance=createFinancialCalendarClient({
+  apiKey:process.env.FINANCE_API_KEY,
+  baseUrl:"https://ofg-finance.example.org", mode:"test"
+});
+const holidays=await finance.holidays("AE",2026);
+```
+The hostname is an example, **not** a live activated customer domain.
+Each real domain requires a canonical signed brand→Workspace grant and live
+Auth/RBAC/ABAC/Metering service. Python:
+`FinancialCalendarClient(api_key=...,base_url=...)`.
+The branded facade never creates keys, routes around the platform meter,
+certifies lunar announcements or initiates payments.
+
+The worldwide rules response now distinguishes `candidate_preview` from true `available_preview`. The pinned source `_COMMON` contains informal observances; `candidate_events` are NOT public holidays, and `holiday_count=0` until independent classification. Do not feed candidate events into business-day, bank or settlement calculations. OpenAPI Git blob: `ec967032f7bfcd39b82f5a8a112690c277677fcb`.

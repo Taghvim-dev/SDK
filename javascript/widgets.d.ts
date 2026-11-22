@@ -1,6 +1,6 @@
 /** Preview: canonical Engine 2.1.0 widget operation bindings; unsupported widgets fail closed. */
 export type WidgetKind =
- "finance-countries" | "finance-business-day" | "date-picker" | "dual-calendar-badge" | "date-reconciliation" | "holiday-month" | "holiday-badge" |
+ "finance-countries" | "finance-business-day" | "finance-public-holidays" | "date-picker" | "dual-calendar-badge" | "date-reconciliation" | "holiday-month" | "holiday-badge" |
  "business-day-badge" | "deadline-calculator" | "deadline-create" |
  "sla-calculator" | "reminder-preview" | "recurrence-builder" |
  "agent-schedule-preview" | "webhook-test" | "booking" | "availability" |

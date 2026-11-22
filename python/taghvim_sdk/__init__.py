@@ -182,6 +182,14 @@ class TaghvimClient:
         """Registered jurisdictions; does not certify bank or Islamic holiday sources."""
         return self.call("GET", "/v1/finance/countries", auth=False)
 
+    def finance_holidays(self, market, year):
+        """Source-attributed world holidays; not settlement certified."""
+        if not isinstance(market, str) or not re.fullmatch(r"^[A-Z]{2}(-[A-Z0-9]{1,4})?$", market):
+            raise ValueError("Explicit ISO market required")
+        if type(year) is not int or year < 2020 or year > 2035:
+            raise ValueError("Holiday year out of range")
+        return self.call("GET", "/v1/finance/holidays", query={"market": market, "year": year})
+
     def finance_business_days(self, body):
         """A metered informational quote, never a bank-approved settlement instruction."""
         return self.call("POST", "/v1/finance/business-days/quote", body)
@@ -189,3 +197,18 @@ class TaghvimClient:
     def discover_handles(self, query=None):
         """Only currently published and approved public handles are searchable."""
         return self.call("GET", "/v1/public/handles", query=query or {}, auth=False)
+
+
+class FinancialCalendarClient(TaghvimClient):
+    """Portable brand-neutral financial calendar client.
+    Provide a distinct authorized HTTPS branded API origin at construction.
+    Never handles payments or treats missing holidays as a working day.
+    """
+    def countries(self):
+        return self.finance_countries()
+
+    def holidays(self, market, year):
+        return self.finance_holidays(market, year)
+
+    def business_days(self, body):
+        return self.finance_business_days(body)
