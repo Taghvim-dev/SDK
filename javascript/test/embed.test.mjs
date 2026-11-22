@@ -7,7 +7,7 @@ test("all advertised Engine-backed widgets have accessible input declarations",(
  for(const [kind,op] of Object.entries(WIDGET_OPERATIONS)){
    if(op.unavailable){assert.equal(WIDGET_INPUTS[kind],undefined,kind+" must never generate fake API UI");continue;}
    const fields=WIDGET_INPUTS[kind];
-   assert.ok(Array.isArray(fields)&&fields.length>=1,kind);
+   assert.ok(Array.isArray(fields)&&(fields.length>=1||(kind==="finance-countries"&&fields.length===0)),kind);
    assert.ok(fields.every(x=>typeof x.label==="string"&&x.label.length>0&&typeof x.name==="string"),kind);
  }
 });

@@ -6,6 +6,8 @@
 import {WIDGET_OPERATIONS, createBrowserWidgetClient} from "./widgets.js";
 
 export const WIDGET_INPUTS = Object.freeze({
+  "finance-countries": [],
+  "finance-business-day": [{name:"markets",label:"بازارها (JSON)",value:'["GB-EW"]',type:"json"},{name:"date",label:"تاریخ میلادی",value:"2026-12-24"},{name:"offset_business_days",label:"روز کاری",value:"1",type:"integer"}],
   "date-picker": [{name:"date",label:"تاریخ شمسی یا میلادی",value:"1405-07-15"}],
   "dual-calendar-badge": [{name:"date",label:"تاریخ",value:"1405-07-15"}],
   "date-reconciliation": [{name:"left",label:"تاریخ اول (JSON)",value:'{"date":"1405-07-15","calendar_system":"jalali"}',type:"json"},

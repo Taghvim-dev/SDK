@@ -5,10 +5,11 @@ import {createTestClient} from "../index.js";
 
 const contract=JSON.parse(readFileSync(new URL("../../contracts/operation-index.json",import.meta.url),"utf8"));
 test("T0 portfolio SDK source is pinned to the Engine canonical one-operation diff",()=>{
- assert.equal(contract.openApiGitBlobSHA,"46146dbcec18eadad579dcac50afbf86d15d3276");
+ assert.equal(contract.openApiGitBlobSHA,"c7d29e88cba281b34c2dbf171c5edda5120fa57b");
  const op=contract.operations.find(x=>x.operationId==="listCalendarPortfolio");
  assert.deepEqual(op,{method:"GET",path:"/v1/portfolios/calendars",operationId:"listCalendarPortfolio",auth:["ApiKey"]});
  assert.equal(contract.operations.filter(x=>x.operationId==="listCalendarPortfolio").length,1);
+ for(const id of ["listFinanceCountries","getFinanceBusinessDayQuote"])assert.equal(contract.operations.filter(x=>x.operationId===id).length,1,id);
 });
 test("T0 portfolio is a single authenticated, read-only, scoped request",async()=>{
  const calls=[];
