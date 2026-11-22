@@ -92,6 +92,10 @@ export class TaghvimClient {
   diffBusinessDays(body, options) { return this.request("POST", "/v1/business-days/diff", { ...options, body }); }
   isBusinessDay(body, options) { return this.request("POST", "/v1/business-days/is-business-day", { ...options, body }); }
   holidays(query, options) { return this.request("GET", "/v1/holidays", { ...options, query }); }
+  /** Country inclusion is not a claim of official bank or settlement-calendar coverage. */
+  financeCountries(options) { return this.request("GET", "/v1/finance/countries", {...options, auth:false}); }
+  /** Bounded, read-only preview; financial_decision_allowed is always false. */
+  financeBusinessDayQuote(body,options) { return this.request("POST", "/v1/finance/business-days/quote", {...options, body}); }
   deadline(body, options) { return this.request("POST", "/v1/deadlines", { ...options, body }); }
   reminderPreview(body, options) { return this.request("POST", "/v1/reminders/preview", { ...options, body }); }
   schedulePreview(body, options) { return this.request("POST", "/v1/schedules/preview", { ...options, body }); }

@@ -4,6 +4,8 @@ export const WIDGET_OPERATIONS = Object.freeze({
   "dual-calendar-badge": {method:"POST",path:"/v1/dates/convert"},
   "date-reconciliation": {method:"POST",path:"/v1/dates/reconcile"},
   "holiday-month": {method:"GET",path:"/v1/holidays"},
+  "finance-countries": {method:"GET",path:"/v1/finance/countries",public:true},
+  "finance-business-day-quote": {method:"POST",path:"/v1/finance/business-days/quote"},
   "holiday-badge": {method:"GET",path:"/v1/holidays/{date}"},
   "business-day-badge": {method:"GET",path:"/v1/business-days/check"},
   "deadline-calculator": {method:"POST",path:"/v1/business-days/add"},

@@ -67,3 +67,18 @@ For server-rendered widgets, call `invokeWidget(client, 'date-reconciliation', {
 
 ## Canonical institutional calendar SDK (source preview)
 The JavaScript/TypeScript and Python clients provide the same tenant-authenticated creation, optimistic version update, publish/unpublish and anonymous public calendar/ICS operations defined by the pinned Engine OpenAPI. A unique `Idempotency-Key` is required for each mutation; never put tenant API keys in browser embeds. Source parity alone does **not** certify GA or a deployed cloud Worker: the coordinated protected release must verify Engine/Sandbox D1/Production D1/SDK and public HTTP receipts at the same immutable release SHA.
+
+
+## Global financial business-calendar preview (non-payment)
+
+The canonical Taghvim Engine supports a 249-country **registry** and a versioned, source-bound market calendar **preview**. Only market/year snapshots with reviewed source metadata can return provisional dates. Missing official country holidays, uncertain Islamic lunar declarations, payment-rail rules, and cut-offs are **denied** rather than guessed. No transfer, banking instruction, settlement certification, or card/payment processing.
+
+```js
+import {createTestClient} from '@taghvim/sdk';
+const c=createTestClient({apiKey:process.env.TAGHVIM_TEST_API_KEY});
+const catalog=await c.financeCountries(); // public, no key transmitted
+const quote=await c.financeBusinessDayQuote({markets:['GB-EW'],date:'2026-12-24',offset_business_days:1});
+// quote.data.financial_decision_allowed === false
+```
+
+Use the hosted, same-origin widget gateway for `finance-countries` or `finance-business-day-quote`. Do not put API keys inside a browser widget. Cloudflare deployment and a full official holiday feed for every country are separate gated stages; the country list alone does not certify worldwide operational coverage.

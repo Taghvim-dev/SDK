@@ -2,6 +2,7 @@
 export type WidgetKind =
  "date-picker" | "dual-calendar-badge" | "date-reconciliation" | "holiday-month" | "holiday-badge" |
  "business-day-badge" | "deadline-calculator" | "deadline-create" |
+ "finance-countries" | "finance-business-day-quote" |
  "sla-calculator" | "reminder-preview" | "recurrence-builder" |
  "agent-schedule-preview" | "webhook-test" | "booking" | "availability" |
  "workflow-run" | "agent-execution" |

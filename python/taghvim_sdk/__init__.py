@@ -83,6 +83,17 @@ class TaghvimClient:
     def convert_date(self, date):
         return self.call("POST", "/v1/dates/convert", {"date": date})
 
+    def finance_countries(self):
+        """249 country codes, not 249 verified official holiday calendars."""
+        return self.call("GET", "/v1/finance/countries", auth=False)
+
+    def finance_business_day_quote(self, markets, date, offset_business_days, convention="following"):
+        """Read-only financial preview; never a certified payment/settlement instruction."""
+        return self.call("POST", "/v1/finance/business-days/quote", {
+            "markets": markets, "date": date,
+            "offset_business_days": offset_business_days, "convention": convention
+        })
+
     def usage(self):
         return self.call("GET", "/v1/usage")
 

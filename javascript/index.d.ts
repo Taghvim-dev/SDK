@@ -16,6 +16,8 @@ export class TaghvimClient {
  diffBusinessDays(body:unknown,options?:RequestOptions):Promise<ApiResponse>;
  isBusinessDay(body:unknown,options?:RequestOptions):Promise<ApiResponse>;
  holidays(query?:Record<string,unknown>,options?:RequestOptions):Promise<ApiResponse>;
+ financeCountries(options?:RequestOptions):Promise<ApiResponse<{status:"preview";country_count:249;countries:Array<{country:string;markets:string[];financial_grade:false;verified_holiday_calendar:false}>}>>;
+ financeBusinessDayQuote(body:{markets:string[];date:string;offset_business_days:number;convention?:"following"|"preceding"|"modified_following"|"modified_preceding"|"unadjusted";rail_id?:string;cutoff_time?:string},options?:RequestOptions):Promise<ApiResponse<{status:"preview"|"verification_required"|"invalid_input";business_date:string|null;financial_decision_allowed:false;certified_for_financial_settlement:false}>>;
  deadline(body:unknown,options?:RequestOptions):Promise<ApiResponse>;
  reminderPreview(body:unknown,options?:RequestOptions):Promise<ApiResponse>;
  schedulePreview(body:unknown,options?:RequestOptions):Promise<ApiResponse>;
