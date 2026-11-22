@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   validate:
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.actor == '007dude' && startsWith(github.event.head_commit.message, 'T0_CERTIFY_PUBLIC_SDK_20261122') }} # Exact owner-authored one-shot main source verification; no automatic recurring spend
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.actor == '007dude' && startsWith(github.event.head_commit.message, 'T0_CERTIFY_PUBLIC_SDK_20261122')) || (github.event_name == 'pull_request' && github.head_ref == 'feat/finance-global-sdk-widgets-20261122' && github.event.pull_request.draft == false && github.event.pull_request.user.login == '007dude') }} # Exact owner-authored one-shot main source verification; no automatic recurring spend
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
