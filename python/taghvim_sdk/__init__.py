@@ -184,7 +184,7 @@ class TaghvimClient:
 
     def finance_holidays(self, market, year):
         """Source-attributed world holidays; not settlement certified."""
-        if not isinstance(market, str) or not re.fullmatch(r"^[A-Z]{2}(-[A-Z0-9]{2,4})?$", market):
+        if not isinstance(market, str) or not re.fullmatch(r"^[A-Z]{2}(-[A-Z0-9]{1,4})?$", market):
             raise ValueError("Explicit ISO market required")
         if type(year) is not int or year < 2020 or year > 2035:
             raise ValueError("Holiday year out of range")
