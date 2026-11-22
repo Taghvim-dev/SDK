@@ -2,6 +2,7 @@
 export const WIDGET_OPERATIONS = Object.freeze({
   "finance-countries": {method:"GET",path:"/v1/finance/countries",public:true},
   "finance-business-day": {method:"POST",path:"/v1/finance/business-days/quote"},
+  "finance-public-holidays": {method:"GET",path:"/v1/finance/holidays"},
   "date-picker": {method:"POST",path:"/v1/dates/convert"},
   "dual-calendar-badge": {method:"POST",path:"/v1/dates/convert"},
   "date-reconciliation": {method:"POST",path:"/v1/dates/reconcile"},

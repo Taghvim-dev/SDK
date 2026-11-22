@@ -67,3 +67,11 @@ For server-rendered widgets, call `invokeWidget(client, 'date-reconciliation', {
 
 ## Canonical institutional calendar SDK (source preview)
 The JavaScript/TypeScript and Python clients provide the same tenant-authenticated creation, optimistic version update, publish/unpublish and anonymous public calendar/ICS operations defined by the pinned Engine OpenAPI. A unique `Idempotency-Key` is required for each mutation; never put tenant API keys in browser embeds. Source parity alone does **not** certify GA or a deployed cloud Worker: the coordinated protected release must verify Engine/Sandbox D1/Production D1/SDK and public HTTP receipts at the same immutable release SHA.
+
+### Worldwide public holidays — financial preview only
+Use `TaghvimClient.financeHolidays({market:"AE",year:2026})` or Python
+`client.finance_holidays("GB-SCT",2027)`. Server keys only. The
+`finance-public-holidays` widget runs through a server-side authorized
+widget gateway. The response distinguishes GOV.UK primary government data from
+community aggregated Nager.Date v4. Lunar sightings and bank rails are not
+verified by these public-holiday sources; do not treat a preview as settlement.

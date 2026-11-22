@@ -172,3 +172,17 @@ test("T0 Handle approval request uses one scoped metered API path; discovery is 
  assert.ok(paths.has("POST /v1/handles/requests"));
  assert.ok(paths.has("GET /v1/public/handles"));
 });
+
+test("worldwide holiday SDK uses exact metered query without browser key leakage",async()=>{
+ const calls=[],client=createTestClient({apiKey:key,fetch:async(url,opts)=>{
+  calls.push({url,opts});return new Response(JSON.stringify({status:"available_preview",holiday_count:1,financial_decision_allowed:false}),
+   {status:200,headers:{"content-type":"application/json"}});}});
+ await client.financeHolidays({market:"GB-SCT",year:2027});
+ assert.equal(new URL(calls[0].url).pathname,"/v1/finance/holidays");
+ assert.equal(new URL(calls[0].url).searchParams.get("market"),"GB-SCT");
+ assert.equal(new URL(calls[0].url).searchParams.get("year"),"2027");
+ assert.equal(calls[0].opts.headers.authorization,"Bearer "+key);
+ assert.throws(()=>client.financeHolidays({market:"../AE",year:2027}),/ISO market/);
+ assert.throws(()=>client.financeHolidays({market:"AE",year:2019}),/holiday year/);
+ assert.equal(calls.length,1);
+});
