@@ -46,6 +46,8 @@ export class TaghvimClient {
  publicCalendarIcs(id:string,options?:RequestOptions):Promise<ApiResponse<string>>;
  searchPublicCalendarEvents(query?:Record<string,string|number|undefined>,options?:RequestOptions):Promise<ApiResponse>;
  /** Request-only admission: Platform Superadmin approval is mandatory before any public activation. */
+ financeCountries(options?:RequestOptions):Promise<ApiResponse<{status:"preview";country_count:249;countries:Array<{country:string;markets:string[];financial_grade:false}>}>>;
+ financeBusinessDays(body:{markets:string[];date:string;offset_business_days:number;convention?:"following"|"preceding"|"modified_following"|"modified_preceding"|"unadjusted";rail_id?:string;cutoff_time?:string},options?:RequestOptions):Promise<ApiResponse<{status:"preview"|"verification_required"|"invalid_input";business_date:string|null;financial_decision_allowed:false;certified_for_financial_settlement:false}>>;
  requestHandle(body:{handle:string;kind:"calendar";calendar_id:string;purpose:string},options:RequestOptions & {idempotencyKey:string}):Promise<ApiResponse<{request_id:string;handle:string;status:"pending";version:number;approval:string}>>;
  discoverHandles(query?:{q?:string;kind?:"calendar";tag?:string;limit?:number},options?:RequestOptions):Promise<ApiResponse<{data:Array<{handle:string;kind:"calendar";calendar_id:string;labels:Record<string,string>;tags:string[];version:number}>;count:number}>>;
 }

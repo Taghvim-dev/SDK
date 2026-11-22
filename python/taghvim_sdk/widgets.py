@@ -8,6 +8,8 @@ import re
 from urllib.parse import quote
 
 WIDGET_OPERATIONS = {
+    "finance-countries": ("GET", "/v1/finance/countries", False),
+    "finance-business-day": ("POST", "/v1/finance/business-days/quote", False),
     "date-picker": ("POST", "/v1/dates/convert", False),
     "dual-calendar-badge": ("POST", "/v1/dates/convert", False),
     "date-reconciliation": ("POST", "/v1/dates/reconcile", False),
@@ -72,4 +74,6 @@ def invoke_widget(client, widget, input=None, *, idempotency_key=None, workspace
             "idempotency_key":idempotency_key,"query":payload if method == "GET" else None}
     if workspace_id is not None:
         kwargs["workspace_id"]=workspace_id
+    if widget == "finance-countries":
+        kwargs["auth"] = False
     return client.call(method,path,**kwargs)

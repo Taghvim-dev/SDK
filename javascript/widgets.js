@@ -1,5 +1,7 @@
 /** Taghvim 2.1.0 Widget -> SDK -> API adapter. Preview; never embed API keys in HTML. */
 export const WIDGET_OPERATIONS = Object.freeze({
+  "finance-countries": {method:"GET",path:"/v1/finance/countries",public:true},
+  "finance-business-day": {method:"POST",path:"/v1/finance/business-days/quote"},
   "date-picker": {method:"POST",path:"/v1/dates/convert"},
   "dual-calendar-badge": {method:"POST",path:"/v1/dates/convert"},
   "date-reconciliation": {method:"POST",path:"/v1/dates/reconcile"},

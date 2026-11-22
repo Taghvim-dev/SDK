@@ -178,6 +178,14 @@ class TaghvimClient:
         return self.call("POST", "/v1/handles/requests", body,
                          self._mutation_key(idempotency_key), workspace_id=workspace_id)
 
+    def finance_countries(self):
+        """Registered jurisdictions; does not certify bank or Islamic holiday sources."""
+        return self.call("GET", "/v1/finance/countries", auth=False)
+
+    def finance_business_days(self, body):
+        """A metered informational quote, never a bank-approved settlement instruction."""
+        return self.call("POST", "/v1/finance/business-days/quote", body)
+
     def discover_handles(self, query=None):
         """Only currently published and approved public handles are searchable."""
         return self.call("GET", "/v1/public/handles", query=query or {}, auth=False)

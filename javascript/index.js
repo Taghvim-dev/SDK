@@ -164,6 +164,10 @@ export class TaghvimClient {
   searchPublicCalendarEvents(query={},options) {
     return this.request("GET","/v1/public/calendar-search",{...options,auth:false,query});
   }
+  /** 249 ISO country identifiers, separate market namespaces; registration is not certified holiday coverage. */
+  financeCountries(options) { return this.request("GET","/v1/finance/countries",{...options,auth:false}); }
+  /** Bounded, source-aware informational date only; never an executable financial settlement quote. */
+  financeBusinessDays(body,options) { return this.request("POST","/v1/finance/business-days/quote",{...options,body}); }
   /** A request is not a handle reservation, entitlement, public listing, or activation. */
   requestHandle(body,options={}) {
     if(!options.idempotencyKey)throw new TypeError("Handle request requires an Idempotency-Key");

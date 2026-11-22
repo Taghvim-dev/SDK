@@ -12,6 +12,16 @@ test("all claimed widget routes exist in canonical SDK OpenAPI operation index",
   }
   for(const x of ["booking","availability","workflow-run","agent-execution"])assert.ok(WIDGET_OPERATIONS[x].unavailable);
 });
+test("Finance widgets use the canonical API without browser API keys or a second pricing rail",async()=>{
+ const call=[];
+ const client={request:async(...args)=>{call.push(args);return {data:{financial_decision_allowed:false},status:200,requestId:"req_finance",rateLimit:null};}};
+ await invokeWidget(client,"finance-countries");
+ assert.deepEqual(call[0],["GET","/v1/finance/countries",{query:{},auth:false}]);
+ await invokeWidget(client,"finance-business-day",{markets:["GB-EW"],date:"2026-12-24",offset_business_days:1});
+ assert.equal(call[1][0],"POST");
+ assert.equal(call[1][1],"/v1/finance/business-days/quote");
+ assert.equal(call[1][2].body.offset_business_days,1);
+});
 test("adapter invokes real SDK request, never creates a mock response",async()=>{
   let seen;
   const client={request:async(...args)=>{seen=args;return {data:{ok:true},status:200,requestId:"req_test",rateLimit:"20"};}};
