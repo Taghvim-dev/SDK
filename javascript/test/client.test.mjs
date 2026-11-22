@@ -109,6 +109,17 @@ test("T0 universal GA operation adapters share exact SDK contract, authz workspa
  await assert.rejects(client.createWorkspace({kind:"partner"},{idempotencyKey:idem.idempotencyKey,workspaceId:"../invalid"}),/Workspace/);
 });
 
+test("Finance SDK quotes remain server-authorized and countries public",async()=>{
+ const seen=[];
+ const fetcher=async(url,options)=>{seen.push({url,options});return new Response(JSON.stringify({status:"preview",financial_decision_allowed:false}),{status:200,headers:{"content-type":"application/json"}})};
+ const client=createTestClient({apiKey:key,fetch:fetcher});
+ await client.financeCountries();
+ await client.financeBusinessDays({markets:["GB-EW"],date:"2026-12-24",offset_business_days:1});
+ assert.equal(new URL(seen[0].url).pathname,"/v1/finance/countries");
+ assert.equal(seen[0].options.headers.authorization,undefined);
+ assert.equal(new URL(seen[1].url).pathname,"/v1/finance/business-days/quote");
+ assert.equal(seen[1].options.headers.authorization,"Bearer "+key);
+});
 test("native Window-like fetch receiver is preserved by default JavaScript SDK transport",async()=>{
  const original=globalThis.fetch;
  let called=0;
