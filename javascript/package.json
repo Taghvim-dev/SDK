@@ -24,6 +24,10 @@
     "./mcp": {
       "types": "./mcp.d.ts",
       "default": "./mcp.js"
+    },
+    "./finance": {
+      "types": "./finance.d.ts",
+      "default": "./finance.js"
     }
   },
   "scripts": {

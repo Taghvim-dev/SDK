@@ -75,3 +75,21 @@ Use `TaghvimClient.financeHolidays({market:"AE",year:2026})` or Python
 widget gateway. The response distinguishes GOV.UK primary government data from
 community aggregated Nager.Date v4. Lunar sightings and bank rails are not
 verified by these public-holiday sources; do not treat a preview as settlement.
+
+
+### Portable white-label Financial Calendar client (preview)
+JavaScript:
+```js
+import {createFinancialCalendarClient} from "@taghvim/sdk/finance";
+const finance=createFinancialCalendarClient({
+  apiKey:process.env.FINANCE_API_KEY,
+  baseUrl:"https://ofg-finance.example.org", mode:"test"
+});
+const holidays=await finance.holidays("AE",2026);
+```
+The hostname is an example, **not** a live activated customer domain.
+Each real domain requires a canonical signed brand→Workspace grant and live
+Auth/RBAC/ABAC/Metering service. Python:
+`FinancialCalendarClient(api_key=...,base_url=...)`.
+The branded facade never creates keys, routes around the platform meter,
+certifies lunar announcements or initiates payments.

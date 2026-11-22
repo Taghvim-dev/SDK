@@ -197,3 +197,18 @@ class TaghvimClient:
     def discover_handles(self, query=None):
         """Only currently published and approved public handles are searchable."""
         return self.call("GET", "/v1/public/handles", query=query or {}, auth=False)
+
+
+class FinancialCalendarClient(TaghvimClient):
+    """Portable brand-neutral financial calendar client.
+    Provide a distinct authorized HTTPS branded API origin at construction.
+    Never handles payments or treats missing holidays as a working day.
+    """
+    def countries(self):
+        return self.finance_countries()
+
+    def holidays(self, market, year):
+        return self.finance_holidays(market, year)
+
+    def business_days(self, body):
+        return self.finance_business_days(body)

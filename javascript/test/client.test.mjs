@@ -186,3 +186,18 @@ test("worldwide holiday SDK uses exact metered query without browser key leakage
  assert.throws(()=>client.financeHolidays({market:"AE",year:2019}),/holiday year/);
  assert.equal(calls.length,1);
 });
+
+test("portable financial-calendar client binds a customer brand HTTPS endpoint, never a Taghvim hardcoded domain",async()=>{
+ const {createFinancialCalendarClient}=await import("../finance.js");
+ const sent=[];
+ const client=createFinancialCalendarClient({
+  baseUrl:"https://ofg-finance.example.org",apiKey:key,
+  fetch:async(url,opts)=>{sent.push({url,opts});return Response.json({
+   status:"source_unavailable",financial_decision_allowed:false,holiday_count:0
+  })}});
+ await client.holidays("AE",2026);
+ assert.equal(new URL(sent[0].url).host,"ofg-finance.example.org");
+ assert.equal(new URL(sent[0].url).pathname,"/v1/finance/holidays");
+ assert.equal(sent[0].opts.headers.authorization,"Bearer "+key);
+ assert.throws(()=>createFinancialCalendarClient({baseUrl:"http://untrusted.example",apiKey:key}),/Insecure/);
+});
